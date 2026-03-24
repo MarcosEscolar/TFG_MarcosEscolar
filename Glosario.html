@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>GEOSFERA — Glosario</title>
+  <link rel="stylesheet" href="./css/Estilos.css">
+</head>
+<body>
+
+  <header>
+    <h1>GEOSFERA</h1>
+    <nav>
+      <a href="Menu.html">Menu</a>
+      <a href="Glosario.html">Glosario</a>
+      <a href="Fuentes.html">Fuentes</a>
+    </nav>
+  </header>
+
+  <main>
+    <h2>Glosario geopolítico</h2>
+    <input type="text" id="buscador" placeholder="Buscar término...">
+    <div id="lista-glosario">Cargando términos...</div>
+  </main>
+
+  <script type="module">
+    import { bd } from './js/bd.js'
+
+    const { data, error } = await bd.from('Glosario').select('*').order('nombre')
+
+    const contenedor = document.getElementById('lista-glosario')
+
+    if (error) {
+      contenedor.innerHTML = '<p>Error al cargar el glosario.</p>'
+    } else {
+      const renderizar = (terminos) => {
+        contenedor.innerHTML = terminos.map(t => `
+          <div class="tarjeta-termino">
+            <div class="termino-header">
+              <span class="emoji">${t.emoji ?? ''}</span>
+              <h3>${t.nombre}</h3>
+              <span class="categoria">${t.categoria ?? ''}</span>
+            </div>
+            <p>${t.definicion ?? ''}</p>
+            ${t.relacionados ? `<div class="relacionados">Relacionados: ${t.relacionados}</div>` : ''}
+          </div>
+        `).join('')
+      }
+
+      renderizar(data)
+
+      document.getElementById('buscador').addEventListener('input', (e) => {
+        const filtro = e.target.value.toLowerCase()
+        const filtrados = data.filter(t =>
+          t.nombre.toLowerCase().includes(filtro) ||
+          t.definicion?.toLowerCase().includes(filtro)
+        )
+        renderizar(filtrados)
+      })
+    }
+  </script>
+
+</body>
+</html>
