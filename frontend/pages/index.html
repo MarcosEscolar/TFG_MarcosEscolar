@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>GEOSFERA</title>
+  <link rel="stylesheet" href="/css/estilos.css">
+</head>
+<body>
+
+<header>
+  <h1>GEOSFERA</h1>
+  <nav>
+    <a href="/" class="activo">Inicio</a>
+    <a href="/glosario">Glosario</a>
+    <a href="/fuentes">Fuentes</a>
+  </nav>
+  <div id="nav-auth"></div>
+</header>
+
+<main>
+  <div class="seccion-header">
+    <h2>Últimas noticias</h2>
+    <button class="btn-add" id="btn-add" onclick="abrirModal()">+ Nueva noticia</button>
+  </div>
+  <div class="barra-filtros">
+    <input type="text" id="buscador-noticias" placeholder="Buscar noticia…" oninput="aplicarFiltros()">
+    <select id="filtro-fuente" onchange="aplicarFiltros()">
+      <option value="">Todos los periódicos</option>
+    </select>
+  </div>
+  <div id="feed">Cargando noticias…</div>
+</main>
+
+<!-- Panel de detalle de noticia -->
+<div class="detalle-overlay" id="detalle-overlay" onclick="cerrarDetalle()"></div>
+<div class="detalle-panel" id="detalle-panel">
+  <div class="detalle-header">
+    <button class="btn-cerrar-detalle" onclick="cerrarDetalle()">← Volver</button>
+    <span class="detalle-tema-badge" id="d-tema"></span>
+  </div>
+  <div class="detalle-body">
+    <h2 class="detalle-titulo" id="d-titulo"></h2>
+    <div class="detalle-meta" id="d-meta"></div>
+    <div class="detalle-contenido" id="d-contenido"></div>
+  </div>
+  <div class="detalle-footer">
+    <a class="btn-original" id="d-url" href="#" target="_blank">Leer artículo original →</a>
+  </div>
+</div>
+
+<!-- Tooltip de términos del glosario -->
+<div class="term-tooltip" id="term-tooltip">
+  <strong id="tt-nombre"></strong>
+  <p id="tt-def"></p>
+</div>
+
+<!-- Modal noticia -->
+<div class="modal-overlay" id="modal">
+  <div class="modal">
+    <h3 id="modal-titulo">Nueva noticia</h3>
+    <div class="alerta" id="modal-alerta"></div>
+    <form onsubmit="submitNoticia(event)">
+      <input type="hidden" id="n-id">
+      <div class="fg"><label>Título *</label><input type="text" id="n-titulo" required></div>
+      <div class="fg"><label>Resumen</label><textarea id="n-resumen"></textarea></div>
+      <div class="fg"><label>URL *</label><input type="url" id="n-url" required></div>
+      <div class="fg"><label>Fuente *</label><input type="text" id="n-fuente" required></div>
+      <div class="grid-2">
+        <div class="fg"><label>Idioma</label>
+          <select id="n-idioma">
+            <option value="ES">Español</option><option value="EN">Inglés</option>
+            <option value="FR">Francés</option><option value="DE">Alemán</option>
+            <option value="PT">Portugués</option><option value="AR">Árabe</option>
+            <option value="RU">Ruso</option><option value="ZH">Chino</option>
+          </select>
+        </div>
+        <div class="fg"><label>Tema</label><input type="text" id="n-tema" placeholder="Ej: OTAN, Asia…"></div>
+      </div>
+      <div class="fg"><label>Términos relacionados</label><input type="text" id="n-terminos" placeholder="Separados por coma"></div>
+      <div class="modal-footer">
+        <button type="button" class="btn-m sec" onclick="cerrarModal('modal')">Cancelar</button>
+        <button type="submit" class="btn-m pri">Guardar</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+  let usuario = null
+  let terminosGlosario = []  // cache [{nombre, definicion}]
+
+  async function iniciar() {
+    try {
+      const res = await fetch('/api/auth/me', { credentials: 'include' })
+      if (res.ok) { usuario = await res.json(); renderNavUsuario() }
+      else { window.location.replace('/login'); return }
+    } catch { window.location.replace('/login'); return }
+    cargarNoticias()
+    cargarTerminosGlosario()
+  }
+
+  function renderNavUsuario() {
+    document.getElementById('nav-auth').innerHTML = `
+      <div class="nav-user">
+        ${usuario.rol === 'admin' ? '<span class="badge-admin">admin</span>' : ''}
+        <span>${usuario.nombre}</span>
+        <button class="nav-auth-btn" onclick="doLogout()">Salir</button>
+      </div>`
+  }
+
+  async function doLogout() {
+    await fetch('/api/auth/logout', { method:'POST', credentials:'include' })
+    usuario = null; location.reload()
+  }
+
+  let todasNoticias = []
+
+  function aplicarFiltros() {
+    const q      = document.getElementById('buscador-noticias').value.toLowerCase().trim()
+    const fuente = document.getElementById('filtro-fuente').value
+    const filtradas = todasNoticias.filter(n => {
+      const coincideTexto  = !q || (n.titulo || '').toLowerCase().includes(q) || (n.resumen_es || '').toLowerCase().includes(q)
+      const coincideFuente = !fuente || (n.fuente || '').trim().toLowerCase() === fuente.trim().toLowerCase()
+      return coincideTexto && coincideFuente
+    })
+    renderNoticias(filtradas)
+  }
+
+  async function renderSelectFuentes() {
+    try {
+      const res  = await fetch('/api/fuentes/', { credentials:'include' })
+      const list = await res.json()
+      const sel  = document.getElementById('filtro-fuente')
+      list.filter(f => f.activa).sort((a,b) => a.nombre.localeCompare(b.nombre)).forEach(f => {
+        const opt = document.createElement('option')
+        opt.value = f.nombre; opt.textContent = f.nombre
+        sel.appendChild(opt)
+      })
+    } catch {}
+  }
+
+  function renderNoticias(list) {
+    const feed = document.getElementById('feed')
+    const esAdmin = usuario?.rol === 'admin'
+    if (!list.length) { feed.innerHTML = '<p style="color:var(--text2)">No hay noticias que coincidan.</p>'; return }
+    feed.innerHTML = list.map(n => `
+      <div class="tarjeta" data-id="${n.id}">
+        ${n.tema ? `<div class="tema">${n.tema}</div>` : ''}
+        <h2>${n.titulo}</h2>
+        <p>${n.resumen_es || ''}</p>
+        <div class="meta">
+          <span class="fuente">${n.fuente || ''}</span>
+          <span class="idioma">${n.idioma || ''}</span>
+          <button class="btn-admin btn-leer" data-id="${n.id}" style="margin-left:auto">Leer más →</button>
+        </div>
+        ${n.terminos?.length ? `<div class="terminos">${Array.isArray(n.terminos) ? n.terminos.join(', ') : n.terminos}</div>` : ''}
+        ${esAdmin ? `<div class="admin-acciones visible">
+          <button class="btn-admin btn-editar" data-id="${n.id}">✏️ Editar</button>
+          <button class="btn-admin danger btn-eliminar" data-id="${n.id}">🗑️ Eliminar</button>
+        </div>` : ''}
+      </div>`).join('')
+
+    feed.querySelectorAll('.btn-leer').forEach(b =>
+      b.addEventListener('click', e => { e.stopPropagation(); abrirDetalle(b.dataset.id) })
+    )
+    feed.querySelectorAll('.tarjeta').forEach(t =>
+      t.addEventListener('click', () => abrirDetalle(t.dataset.id))
+    )
+    if (esAdmin) {
+      feed.querySelectorAll('.btn-editar').forEach(b =>
+        b.addEventListener('click', e => { e.stopPropagation(); editarNoticia(b.dataset.id) })
+      )
+      feed.querySelectorAll('.btn-eliminar').forEach(b =>
+        b.addEventListener('click', e => { e.stopPropagation(); eliminarNoticia(b.dataset.id) })
+      )
+    }
+  }
+
+  async function cargarNoticias() {
+    const feed = document.getElementById('feed')
+    try {
+      const res  = await fetch('/api/noticias/?limite=500', { credentials:'include' })
+      const data = await res.json()
+      if (!res.ok) {
+        feed.innerHTML = `<p style="color:var(--rojo)">Error de la API: ${data.error || res.status}</p>`
+        return
+      }
+      const list = data.noticias || []
+      if (!list.length) { feed.innerHTML = '<p style="color:var(--text2)">No hay noticias aún.</p>'; return }
+      todasNoticias = list
+      const esAdmin = usuario?.rol === 'admin'
+      if (esAdmin) document.getElementById('btn-add').classList.add('visible')
+      await renderSelectFuentes()
+      renderNoticias(list)
+    } catch (err) {
+      feed.innerHTML = `<p style="color:var(--rojo)">Error: ${err.message}</p>`
+    }
+  }
+
+
+  function abrirModal(n = null) {
+    document.getElementById('modal-titulo').textContent = n ? 'Editar noticia' : 'Nueva noticia'
+    document.getElementById('n-id').value       = n?.id || ''
+    document.getElementById('n-titulo').value   = n?.titulo || ''
+    document.getElementById('n-resumen').value  = n?.resumen_es || ''
+    document.getElementById('n-url').value      = n?.url || ''
+    document.getElementById('n-fuente').value   = n?.fuente || ''
+    document.getElementById('n-idioma').value   = n?.idioma || 'ES'
+    document.getElementById('n-tema').value     = n?.tema || ''
+    const term = n?.terminos
+    document.getElementById('n-terminos').value = Array.isArray(term) ? term.join(', ') : (term || '')
+    document.getElementById('modal').classList.add('open')
+  }
+
+  async function editarNoticia(id) {
+    try {
+      const res = await fetch(`/api/noticias/${id}`, { credentials:'include' })
+      const data = await res.json()
+      if (res.ok) abrirModal(data)
+      else alert(data.error || 'No se pudo cargar la noticia')
+    } catch (err) { alert('Error de conexión: ' + err.message) }
+  }
+
+  async function submitNoticia(e) {
+    e.preventDefault()
+    const id = document.getElementById('n-id').value
+    const body = {
+      titulo:     document.getElementById('n-titulo').value,
+      resumen_es: document.getElementById('n-resumen').value,
+      url:        document.getElementById('n-url').value,
+      fuente:     document.getElementById('n-fuente').value,
+      idioma:     document.getElementById('n-idioma').value,
+      tema:       document.getElementById('n-tema').value,
+      terminos:   document.getElementById('n-terminos').value,
+    }
+    try {
+      const res = await fetch(id ? `/api/noticias/${id}` : '/api/noticias/', {
+        method: id ? 'PUT' : 'POST', credentials:'include',
+        headers:{'Content-Type':'application/json'}, body: JSON.stringify(body)
+      })
+      const data = await res.json()
+      if (res.ok) { cerrarModal('modal'); cargarNoticias() }
+      else showAlerta('modal-alerta', data.error || 'Error al guardar', 'error')
+    } catch (err) {
+      showAlerta('modal-alerta', 'Error de conexión: ' + err.message, 'error')
+    }
+  }
+
+  async function eliminarNoticia(id) {
+    if (!confirm('¿Eliminar esta noticia?')) return
+    try {
+      const res = await fetch(`/api/noticias/${id}`, { method:'DELETE', credentials:'include' })
+      if (res.ok) cargarNoticias()
+      else {
+        const data = await res.json()
+        alert(data.error || 'No se pudo eliminar')
+      }
+    } catch (err) {
+      alert('Error de conexión: ' + err.message)
+    }
+  }
+
+  function cerrarModal(id) { document.getElementById(id).classList.remove('open') }
+
+  function showAlerta(id, msg, tipo) {
+    const el = document.getElementById(id)
+    el.textContent = msg; el.className = `alerta ${tipo} show`
+    setTimeout(() => el.classList.remove('show'), 4000)
+  }
+
+  document.querySelectorAll('.modal-overlay').forEach(o =>
+    o.addEventListener('click', e => { if (e.target === o) o.classList.remove('open') })
+  )
+
+  // ── Glosario cache ─────────────────────────────────────────────────────────
+  async function cargarTerminosGlosario() {
+    try {
+      const res  = await fetch('/api/glosario/', { credentials:'include' })
+      if (res.ok) terminosGlosario = await res.json()
+    } catch {}
+  }
+
+  // ── Panel de detalle ───────────────────────────────────────────────────────
+  async function abrirDetalle(id) {
+    try {
+      const res  = await fetch(`/api/noticias/${id}`, { credentials:'include' })
+      const data = await res.json()
+      if (!res.ok) return
+
+      document.getElementById('d-titulo').textContent = data.titulo || ''
+      document.getElementById('d-tema').textContent   = data.tema   || ''
+      document.getElementById('d-tema').style.display = data.tema ? '' : 'none'
+      document.getElementById('d-url').href           = data.url    || '#'
+
+      document.getElementById('d-meta').innerHTML = [
+        data.fuente  ? `<span>📰 ${data.fuente}</span>`  : '',
+        data.idioma  ? `<span>🌐 ${data.idioma}</span>`  : '',
+      ].filter(Boolean).join('')
+
+      const texto = data.contenido || data.resumen_es || 'Sin contenido disponible.'
+      document.getElementById('d-contenido').innerHTML = enlazarTerminos(texto)
+
+      document.getElementById('detalle-overlay').classList.add('open')
+      document.getElementById('detalle-panel').classList.add('open')
+      document.body.style.overflow = 'hidden'
+
+      activarTooltips()
+    } catch (err) {
+      console.error('Error abriendo detalle:', err)
+    }
+  }
+
+  function cerrarDetalle() {
+    document.getElementById('detalle-overlay').classList.remove('open')
+    document.getElementById('detalle-panel').classList.remove('open')
+    document.body.style.overflow = ''
+    ocultarTooltip()
+  }
+
+  // ── Hipervínculos de glosario ──────────────────────────────────────────────
+  function enlazarTerminos(texto) {
+    if (!terminosGlosario.length) return escapeHtml(texto)
+
+    // Ordenar de más largo a más corto para evitar reemplazos parciales
+    const terminos = [...terminosGlosario].sort((a, b) => b.nombre.length - a.nombre.length)
+
+    // Escapar HTML del texto base
+    let resultado = escapeHtml(texto)
+
+    terminos.forEach(t => {
+      const patron = new RegExp(`(?<![\\w<"])${escapeRegex(t.nombre)}(?![\\w>"])`, 'gi')
+      const defEsc = escapeAttr(t.definicion || '')
+      const nomEsc = escapeAttr(t.nombre)
+      resultado = resultado.replace(patron, match =>
+        `<span class="term-link" data-nombre="${nomEsc}" data-def="${defEsc}">${match}</span>`
+      )
+    })
+
+    return resultado
+  }
+
+  function escapeHtml(str) {
+    return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+  }
+  function escapeAttr(str) {
+    return str.replace(/"/g,'&quot;').replace(/'/g,'&#39;')
+  }
+  function escapeRegex(str) {
+    return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+  }
+
+  // ── Tooltip de términos ─────────────────────────────────────────────────────
+  function activarTooltips() {
+    const tooltip = document.getElementById('term-tooltip')
+    document.querySelectorAll('.term-link').forEach(el => {
+      el.addEventListener('mouseenter', e => {
+        document.getElementById('tt-nombre').textContent = el.dataset.nombre
+        document.getElementById('tt-def').textContent    = el.dataset.def
+        tooltip.classList.add('visible')
+        posicionarTooltip(e)
+      })
+      el.addEventListener('mousemove', posicionarTooltip)
+      el.addEventListener('mouseleave', ocultarTooltip)
+    })
+  }
+
+  function posicionarTooltip(e) {
+    const tt = document.getElementById('term-tooltip')
+    const x  = e.clientX + 12
+    const y  = e.clientY + 12
+    tt.style.left = Math.min(x, window.innerWidth  - tt.offsetWidth  - 16) + 'px'
+    tt.style.top  = Math.min(y, window.innerHeight - tt.offsetHeight - 16) + 'px'
+  }
+
+  function ocultarTooltip() {
+    document.getElementById('term-tooltip').classList.remove('visible')
+  }
+
+  // Cerrar detalle con Escape
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') cerrarDetalle() })
+
+  iniciar()
+
+</script>
+</body>
+</html>

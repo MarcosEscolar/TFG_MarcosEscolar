@@ -1,0 +1,37 @@
+# ── Entornos virtuales ───────────────────────────────────────────────────────
+venv/
+.venv/
+env/
+
+# ── Variables de entorno (contienen claves privadas) ─────────────────────────
+.env
+backend/.env
+scraper/.env
+
+# ── Caché de Python ──────────────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*.pyo
+
+# ── Archivos de sistema ──────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ── IDEs y editores ──────────────────────────────────────────────────────────
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# ── Logs ─────────────────────────────────────────────────────────────────────
+*.log
+
+# ── Archivos de diagnóstico temporales ───────────────────────────────────────
+scraper/test_gemini.py
+
+# ───.md
+APRENDIZAJE.md
+
+#--.sql
+backend/setup.sql

@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>GEOSFERA — Glosario</title>
+  <link rel="stylesheet" href="/css/estilos.css">
+</head>
+<body>
+
+<header>
+  <h1>GEOSFERA</h1>
+  <nav>
+    <a href="/">Inicio</a>
+    <a href="/glosario" class="activo">Glosario</a>
+    <a href="/fuentes">Fuentes</a>
+  </nav>
+  <div id="nav-auth"></div>
+</header>
+
+<main>
+  <div class="seccion-header">
+    <h2>Glosario geopolítico</h2>
+    <button class="btn-add" id="btn-add" onclick="abrirModal()">+ Nuevo término</button>
+  </div>
+  <input type="text" id="buscador" placeholder="Buscar término…" oninput="filtrar()">
+  <div id="lista-glosario">Cargando términos…</div>
+</main>
+
+<!-- Modal término -->
+<div class="modal-overlay" id="modal">
+  <div class="modal">
+    <h3 id="modal-titulo">Nuevo término</h3>
+    <div class="alerta" id="modal-alerta"></div>
+    <form onsubmit="submitTermino(event)">
+      <input type="hidden" id="t-id">
+      <div class="grid-2">
+        <div class="fg"><label>Emoji</label><input type="text" id="t-emoji" placeholder="🌍" style="text-align:center"></div>
+        <div class="fg"><label>Nombre *</label><input type="text" id="t-nombre" required></div>
+      </div>
+      <div class="fg"><label>Definición *</label><textarea id="t-definicion" required></textarea></div>
+      <div class="fg"><label>Categoría</label><input type="text" id="t-categoria" placeholder="Ej: Geopolítica, Derecho…"></div>
+      <div class="fg"><label>Relacionados</label><input type="text" id="t-relacionados" placeholder="Separados por coma"></div>
+      <div class="modal-footer">
+        <button type="button" class="btn-m sec" onclick="cerrarModal('modal')">Cancelar</button>
+        <button type="submit" class="btn-m pri">Guardar</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+  let usuario = null
+  let todosTerminos = []
+
+  async function iniciar() {
+    try {
+      const res = await fetch('/api/auth/me', { credentials:'include' })
+      if (res.ok) { usuario = await res.json(); renderNavUsuario() }
+      else { window.location.replace('/login'); return }
+    } catch { window.location.replace('/login'); return }
+    cargarGlosario()
+  }
+
+  function renderNavUsuario() {
+    document.getElementById('nav-auth').innerHTML = `
+      <div class="nav-user">
+        ${usuario.rol === 'admin' ? '<span class="badge-admin">admin</span>' : ''}
+        <span>${usuario.nombre}</span>
+        <button class="nav-auth-btn" onclick="doLogout()">Salir</button>
+      </div>`
+  }
+
+  async function doLogout() {
+    await fetch('/api/auth/logout', { method:'POST', credentials:'include' })
+    usuario = null; location.reload()
+  }
+
+  async function cargarGlosario() {
+    try {
+      const res = await fetch('/api/glosario/', { credentials:'include' })
+      todosTerminos = await res.json()
+      renderTerminos(todosTerminos)
+      if (usuario?.rol === 'admin') document.getElementById('btn-add').classList.add('visible')
+    } catch (err) {
+      document.getElementById('lista-glosario').innerHTML = `<p style="color:var(--rojo)">Error: ${err.message}</p>`
+    }
+  }
+
+  function filtrar() {
+    const q = document.getElementById('buscador').value.toLowerCase().trim()
+    renderTerminos(q ? todosTerminos.filter(t =>
+      t.nombre?.toLowerCase().includes(q) || t.definicion?.toLowerCase().includes(q)
+    ) : todosTerminos)
+  }
+
+  function renderTerminos(list) {
+    const contenedor = document.getElementById('lista-glosario')
+    if (!list.length) { contenedor.innerHTML = '<p style="color:var(--text2)">No hay términos.</p>'; return }
+    const esAdmin = usuario?.rol === 'admin'
+    contenedor.innerHTML = list.map(t => `
+      <div class="tarjeta-termino">
+        <div class="termino-header">
+          ${t.emoji ? `<span class="emoji">${t.emoji}</span>` : ''}
+          <h3>${t.nombre}</h3>
+          ${t.categoria ? `<span class="categoria">${t.categoria}</span>` : ''}
+        </div>
+        <p>${t.definicion || ''}</p>
+        ${t.relacionados?.length ? `<div class="relacionados">${Array.isArray(t.relacionados) ? t.relacionados.join(', ') : t.relacionados}</div>` : ''}
+        ${esAdmin ? `<div class="admin-acciones visible">
+          <button class="btn-admin btn-editar" data-id="${t.id}">✏️ Editar</button>
+          <button class="btn-admin danger btn-eliminar" data-id="${t.id}">🗑️ Eliminar</button>
+        </div>` : ''}
+      </div>`).join('')
+
+    if (esAdmin) {
+      contenedor.querySelectorAll('.btn-editar').forEach(b =>
+        b.addEventListener('click', () => editarTermino(b.dataset.id))
+      )
+      contenedor.querySelectorAll('.btn-eliminar').forEach(b =>
+        b.addEventListener('click', () => eliminarTermino(b.dataset.id))
+      )
+    }
+  }
+
+  function abrirModal(t = null) {
+    document.getElementById('modal-titulo').textContent = t ? 'Editar término' : 'Nuevo término'
+    document.getElementById('t-id').value          = t?.id || ''
+    document.getElementById('t-emoji').value       = t?.emoji || ''
+    document.getElementById('t-nombre').value      = t?.nombre || ''
+    document.getElementById('t-definicion').value  = t?.definicion || ''
+    document.getElementById('t-categoria').value   = t?.categoria || ''
+    const rel = t?.relacionados
+    document.getElementById('t-relacionados').value = Array.isArray(rel) ? rel.join(', ') : (rel || '')
+    document.getElementById('modal').classList.add('open')
+  }
+
+  async function editarTermino(id) {
+    try {
+      const res = await fetch(`/api/glosario/${id}`, { credentials:'include' })
+      const data = await res.json()
+      if (res.ok) abrirModal(data)
+      else alert(data.error || 'No se pudo cargar el término')
+    } catch (err) { alert('Error de conexión: ' + err.message) }
+  }
+
+  async function submitTermino(e) {
+    e.preventDefault()
+    const id = document.getElementById('t-id').value
+    const body = {
+      emoji:        document.getElementById('t-emoji').value,
+      nombre:       document.getElementById('t-nombre').value,
+      definicion:   document.getElementById('t-definicion').value,
+      categoria:    document.getElementById('t-categoria').value || 'General',
+      relacionados: document.getElementById('t-relacionados').value,
+    }
+    try {
+      const res = await fetch(id ? `/api/glosario/${id}` : '/api/glosario/', {
+        method: id ? 'PUT' : 'POST', credentials:'include',
+        headers:{'Content-Type':'application/json'}, body: JSON.stringify(body)
+      })
+      const data = await res.json()
+      if (res.ok) { cerrarModal('modal'); cargarGlosario() }
+      else showAlerta('modal-alerta', data.error || 'Error al guardar', 'error')
+    } catch (err) {
+      showAlerta('modal-alerta', 'Error de conexión: ' + err.message, 'error')
+    }
+  }
+
+  async function eliminarTermino(id) {
+    if (!confirm('¿Eliminar este término?')) return
+    try {
+      const res = await fetch(`/api/glosario/${id}`, { method:'DELETE', credentials:'include' })
+      if (res.ok) cargarGlosario()
+      else {
+        const data = await res.json()
+        alert(data.error || 'No se pudo eliminar')
+      }
+    } catch (err) { alert('Error de conexión: ' + err.message) }
+  }
+
+  function cerrarModal(id) { document.getElementById(id).classList.remove('open') }
+
+  function showAlerta(id, msg, tipo) {
+    const el = document.getElementById(id)
+    el.textContent = msg; el.className = `alerta ${tipo} show`
+    setTimeout(() => el.classList.remove('show'), 4000)
+  }
+
+  document.querySelectorAll('.modal-overlay').forEach(o =>
+    o.addEventListener('click', e => { if (e.target === o) o.classList.remove('open') })
+  )
+
+  iniciar()
+
+</script>
+</body>
+</html>

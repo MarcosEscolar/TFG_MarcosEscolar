@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>GEOSFERA — Acceso</title>
+  <link rel="stylesheet" href="/css/estilos.css">
+</head>
+<body class="login-body">
+
+<header>
+  <h1>GEOSFERA</h1>
+</header>
+
+<main class="login-main">
+  <div class="login-card">
+    <h2>Acceso</h2>
+    <p class="subtitulo">Inicia sesión o crea una cuenta para continuar.</p>
+
+    <div class="tab-row">
+      <button class="tab-btn activo" id="tab-login" onclick="cambiarTab('login')">Iniciar sesión</button>
+      <button class="tab-btn"        id="tab-reg"   onclick="cambiarTab('registro')">Crear cuenta</button>
+    </div>
+
+    <div id="alerta" class="alerta"></div>
+
+    <!-- Formulario login -->
+    <form id="form-login" onsubmit="doLogin(event)">
+      <div class="fg">
+        <label>Email</label>
+        <input type="email" id="l-email" required placeholder="tu@email.com">
+      </div>
+      <div class="fg">
+        <label>Contraseña</label>
+        <input type="password" id="l-pass" required placeholder="••••••••">
+      </div>
+      <button type="submit" class="btn-submit">Entrar</button>
+
+    </form>
+
+    <div class="divider"></div>
+
+    <div class="prueba-bloque">
+      <p class="prueba-titulo">Usuarios de prueba</p>
+      <div class="prueba-fila">
+        <span class="prueba-rol admin">ADMIN</span>
+        <span class="prueba-dato">marcos@gmail.com</span>
+        <span class="prueba-pass">12345678</span>
+      </div>
+      <div class="prueba-fila">
+        <span class="prueba-rol user">USUARIO</span>
+        <span class="prueba-dato">juan@gmail.com</span>
+        <span class="prueba-pass">12345678</span>
+      </div>
+    </div>
+
+    <!-- Formulario registro -->
+    <form id="form-reg" onsubmit="doRegister(event)" style="display:none">
+      <div class="fg">
+        <label>Nombre</label>
+        <input type="text" id="r-nombre" required placeholder="Tu nombre">
+      </div>
+      <div class="fg">
+        <label>Email</label>
+        <input type="email" id="r-email" required placeholder="tu@email.com">
+      </div>
+      <div class="fg">
+        <label>Contraseña <span style="font-weight:400;text-transform:none;letter-spacing:0">(mín. 8 caracteres)</span></label>
+        <input type="password" id="r-pass" required minlength="8" placeholder="••••••••">
+      </div>
+      <button type="submit" class="btn-submit">Crear cuenta</button>
+    </form>
+  </div>
+
+
+</main>
+
+<script>
+  function rellenar(email, pass) {
+    document.getElementById('l-email').value = email
+    document.getElementById('l-pass').value  = pass
+    cambiarTab('login')
+  }
+
+  function cambiarTab(tab) {
+    const esLogin = tab === 'login'
+    document.getElementById('form-login').style.display = esLogin ? '' : 'none'
+    document.getElementById('form-reg').style.display   = esLogin ? 'none' : ''
+    document.getElementById('tab-login').className = `tab-btn ${esLogin ? 'activo' : ''}`
+    document.getElementById('tab-reg').className   = `tab-btn ${!esLogin ? 'activo' : ''}`
+    ocultarAlerta()
+  }
+
+  function mostrarAlerta(msg, tipo) {
+    const el = document.getElementById('alerta')
+    el.textContent = msg
+    el.className   = `alerta ${tipo} show`
+  }
+
+  function ocultarAlerta() {
+    document.getElementById('alerta').className = 'alerta'
+  }
+
+  async function doLogin(e) {
+    e.preventDefault()
+    try {
+      const res  = await fetch('/api/auth/login', {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email:    document.getElementById('l-email').value,
+          password: document.getElementById('l-pass').value
+        })
+      })
+      let data = {}
+      try { data = await res.json() } catch { mostrarAlerta('El servidor no respondió con JSON. Revisa la consola.', 'error'); return }
+      if (!res.ok) { mostrarAlerta(data.error || 'Error desconocido', 'error'); return }
+      window.location.href = '/'
+    } catch (err) {
+      mostrarAlerta('Error de conexión: ' + err.message, 'error')
+    }
+  }
+
+
+  async function doRegister(e) {
+    e.preventDefault()
+    try {
+      const res  = await fetch('/api/auth/register', {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          nombre:   document.getElementById('r-nombre').value,
+          email:    document.getElementById('r-email').value,
+          password: document.getElementById('r-pass').value
+        })
+      })
+      let data = {}
+      try { data = await res.json() } catch { mostrarAlerta('El servidor no respondió con JSON. Revisa la consola.', 'error'); return }
+      if (!res.ok) { mostrarAlerta(data.error || 'Error desconocido', 'error'); return }
+      mostrarAlerta('Cuenta creada correctamente. Redirigiendo…', 'ok')
+      setTimeout(() => window.location.href = '/', 1200)
+    } catch (err) {
+      mostrarAlerta('Error de conexión: ' + err.message, 'error')
+    }
+  }
+</script>
+</body>

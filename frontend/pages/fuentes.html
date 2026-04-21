@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>GEOSFERA — Fuentes</title>
+  <link rel="stylesheet" href="/css/estilos.css">
+</head>
+<body>
+
+<header>
+  <h1>GEOSFERA</h1>
+  <nav>
+    <a href="/">Inicio</a>
+    <a href="/glosario">Glosario</a>
+    <a href="/fuentes" class="activo">Fuentes</a>
+  </nav>
+  <div id="nav-auth"></div>
+</header>
+
+<main>
+  <div class="seccion-header">
+    <h2>Fuentes monitorizadas</h2>
+    <button class="btn-add" id="btn-add" onclick="abrirModal()">+ Nueva fuente</button>
+  </div>
+  <div class="barra-filtros">
+    <input type="text" id="buscador-fuentes" placeholder="Buscar fuente…" oninput="aplicarFiltros()">
+    <select id="filtro-idioma" onchange="aplicarFiltros()">
+      <option value="">Todos los idiomas</option>
+      <option value="ES">Español</option>
+      <option value="EN">Inglés</option>
+      <option value="FR">Francés</option>
+      <option value="DE">Alemán</option>
+      <option value="PT">Portugués</option>
+      <option value="AR">Árabe</option>
+      <option value="RU">Ruso</option>
+      <option value="ZH">Chino</option>
+    </select>
+    <select id="filtro-region" onchange="aplicarFiltros()">
+      <option value="">Todas las regiones</option>
+    </select>
+  </div>
+  <div id="lista-fuentes">Cargando fuentes…</div>
+</main>
+
+<!-- Modal fuente -->
+<div class="modal-overlay" id="modal">
+  <div class="modal">
+    <h3 id="modal-titulo">Nueva fuente</h3>
+    <div class="alerta" id="modal-alerta"></div>
+    <form onsubmit="submitFuente(event)">
+      <input type="hidden" id="f-id">
+      <div class="fg"><label>Nombre *</label><input type="text" id="f-nombre" required></div>
+      <div class="fg"><label>URL del RSS *</label><input type="url" id="f-url" required></div>
+      <div class="grid-2">
+        <div class="fg"><label>Idioma</label>
+          <select id="f-idioma">
+            <option value="ES">Español</option><option value="EN">Inglés</option>
+            <option value="FR">Francés</option><option value="DE">Alemán</option>
+            <option value="PT">Portugués</option><option value="AR">Árabe</option>
+            <option value="RU">Ruso</option><option value="ZH">Chino</option>
+          </select>
+        </div>
+        <div class="fg"><label>Región</label><input type="text" id="f-region" placeholder="Ej: Europa, Asia…"></div>
+      </div>
+      <div class="fg"><label>Estado</label>
+        <select id="f-activa">
+          <option value="true">Activa</option>
+          <option value="false">Inactiva</option>
+        </select>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn-m sec" onclick="cerrarModal('modal')">Cancelar</button>
+        <button type="submit" class="btn-m pri">Guardar</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+  let usuario = null
+  let todasFuentes = []
+
+  function aplicarFiltros() {
+    const q      = document.getElementById('buscador-fuentes').value.toLowerCase().trim()
+    const idioma = document.getElementById('filtro-idioma').value
+    const region = document.getElementById('filtro-region').value
+    const filtradas = todasFuentes.filter(f => {
+      const coincideTexto  = !q      || (f.nombre || '').toLowerCase().includes(q)
+      const coincideIdioma = !idioma || f.idioma === idioma
+      const coincideRegion = !region || f.region === region
+      return coincideTexto && coincideIdioma && coincideRegion
+    })
+    renderFuentes(filtradas)
+  }
+
+  function renderSelectRegiones(fuentes) {
+    const regiones = [...new Set(fuentes.map(f => f.region).filter(Boolean))].sort()
+    const sel = document.getElementById('filtro-region')
+    regiones.forEach(r => {
+      const opt = document.createElement('option')
+      opt.value = r; opt.textContent = r
+      sel.appendChild(opt)
+    })
+  }
+
+  async function iniciar() {
+    try {
+      const res = await fetch('/api/auth/me', { credentials:'include' })
+      if (res.ok) { usuario = await res.json(); renderNavUsuario() }
+      else { window.location.replace('/login'); return }
+    } catch { window.location.replace('/login'); return }
+    cargarFuentes()
+  }
+
+  function renderNavUsuario() {
+    document.getElementById('nav-auth').innerHTML = `
+      <div class="nav-user">
+        ${usuario.rol === 'admin' ? '<span class="badge-admin">admin</span>' : ''}
+        <span>${usuario.nombre}</span>
+        <button class="nav-auth-btn" onclick="doLogout()">Salir</button>
+      </div>`
+  }
+
+  async function doLogout() {
+    await fetch('/api/auth/logout', { method:'POST', credentials:'include' })
+    usuario = null; location.reload()
+  }
+
+  function renderFuentes(list) {
+    const contenedor = document.getElementById('lista-fuentes')
+    const esAdmin = usuario?.rol === 'admin'
+    if (!list.length) { contenedor.innerHTML = '<p style="color:var(--text2)">No hay fuentes que coincidan.</p>'; return }
+    contenedor.innerHTML = list.map(f => `
+      <div class="tarjeta-fuente">
+        <div class="fuente-header">
+          <h3>${f.nombre}</h3>
+          <span class="badge ${f.activa ? 'activa' : 'inactiva'}">${f.activa ? 'Activa' : 'Inactiva'}</span>
+        </div>
+        <div class="fuente-meta">
+          <span>🌍 ${f.region || '—'}</span>
+          <span>🗣️ ${f.idioma || '—'}</span>
+        </div>
+        <a href="${f.url_rss}" target="_blank">Ver feed RSS →</a>
+        ${esAdmin ? `<div class="admin-acciones visible">
+          <button class="btn-admin btn-editar" data-id="${f.id}">✏️ Editar</button>
+          <button class="btn-admin danger btn-eliminar" data-id="${f.id}">🗑️ Eliminar</button>
+        </div>` : ''}
+      </div>`).join('')
+
+    if (esAdmin) {
+      contenedor.querySelectorAll('.btn-editar').forEach(b =>
+        b.addEventListener('click', () => editarFuente(b.dataset.id))
+      )
+      contenedor.querySelectorAll('.btn-eliminar').forEach(b =>
+        b.addEventListener('click', () => eliminarFuente(b.dataset.id))
+      )
+    }
+  }
+
+  async function cargarFuentes() {
+    const contenedor = document.getElementById('lista-fuentes')
+    try {
+      const res  = await fetch('/api/fuentes/', { credentials:'include' })
+      const list = await res.json()
+      todasFuentes = list
+      if (usuario?.rol === 'admin') document.getElementById('btn-add').classList.add('visible')
+      renderSelectRegiones(list)
+      renderFuentes(list)
+    } catch (err) {
+      contenedor.innerHTML = `<p style="color:var(--rojo)">Error: ${err.message}</p>`
+    }
+  }
+
+  function abrirModal(f = null) {
+    document.getElementById('modal-titulo').textContent = f ? 'Editar fuente' : 'Nueva fuente'
+    document.getElementById('f-id').value          = f?.id || ''
+    document.getElementById('f-nombre').value      = f?.nombre || ''
+    document.getElementById('f-url').value         = f?.url_rss || ''
+    document.getElementById('f-idioma').value = f?.idioma || 'ES'
+    document.getElementById('f-region').value = f?.region || ''
+    document.getElementById('f-activa').value = String(f?.activa ?? true)
+    document.getElementById('modal').classList.add('open')
+  }
+
+  async function editarFuente(id) {
+    try {
+      const res = await fetch(`/api/fuentes/${id}`, { credentials:'include' })
+      const data = await res.json()
+      if (res.ok) abrirModal(data)
+      else alert(data.error || 'No se pudo cargar la fuente')
+    } catch (err) { alert('Error de conexión: ' + err.message) }
+  }
+
+  async function submitFuente(e) {
+    e.preventDefault()
+    const id = document.getElementById('f-id').value
+    const body = {
+      nombre:  document.getElementById('f-nombre').value,
+      url_rss: document.getElementById('f-url').value,
+      idioma:  document.getElementById('f-idioma').value,
+      region:  document.getElementById('f-region').value,
+      activa:  document.getElementById('f-activa').value === 'true',
+    }
+    try {
+      const res = await fetch(id ? `/api/fuentes/${id}` : '/api/fuentes/', {
+        method: id ? 'PUT' : 'POST', credentials:'include',
+        headers:{'Content-Type':'application/json'}, body: JSON.stringify(body)
+      })
+      const data = await res.json()
+      if (res.ok) { cerrarModal('modal'); cargarFuentes() }
+      else showAlerta('modal-alerta', data.error || 'Error al guardar', 'error')
+    } catch (err) {
+      showAlerta('modal-alerta', 'Error de conexión: ' + err.message, 'error')
+    }
+  }
+
+  async function eliminarFuente(id) {
+    if (!confirm('¿Eliminar esta fuente?')) return
+    try {
+      const res = await fetch(`/api/fuentes/${id}`, { method:'DELETE', credentials:'include' })
+      if (res.ok) cargarFuentes()
+      else {
+        const data = await res.json()
+        alert(data.error || 'No se pudo eliminar')
+      }
+    } catch (err) { alert('Error de conexión: ' + err.message) }
+  }
+
+  function cerrarModal(id) { document.getElementById(id).classList.remove('open') }
+
+  function showAlerta(id, msg, tipo) {
+    const el = document.getElementById(id)
+    el.textContent = msg; el.className = `alerta ${tipo} show`
+    setTimeout(() => el.classList.remove('show'), 4000)
+  }
+
+  document.querySelectorAll('.modal-overlay').forEach(o =>
+    o.addEventListener('click', e => { if (e.target === o) o.classList.remove('open') })
+  )
+
+  iniciar()
+
+</script>
+</body>
+</html>
