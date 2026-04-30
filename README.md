@@ -43,7 +43,7 @@ Petición HTTP
 El scraper se ejecuta automáticamente cada 6 horas mediante **GitHub Actions**. Obtiene noticias de los feeds RSS, extrae el texto completo de cada artículo, lo enriquece con IA y lo guarda en Supabase.
 
 ```
-GitHub Actions (cada 6h)
+GitHub Actions (cada dia)
         │
         ▼
      main.py
@@ -65,4 +65,10 @@ GitHub Actions (cada 6h)
 
 **`ia.py`** — Llama a la API de Gemini para enriquecer cada artículo. Por cada noticia genera: título traducido al español, resumen breve, análisis geopolítico, tema principal (de una lista fija) y términos nuevos para el glosario.
 
-**`guardar.py`** — Inserta las noticias enriquecidas en la tabla `Noticias` y añade al `Glosario` los términos nuevos detectados por la IA que aún no estuvieran registrados.
+**`guardar.py`** — Inserta las noticias enriquecidas en la tabla `Noticias` y añade al `Glosario` los términos nuevos detectados por la IA que aún no estuvieran registrados. Antes de cada `insert` aplica la función `limpiar_texto()` a todos los campos de texto, garantizando que no entre HTML residual en la base de datos.
+
+**`limpiar.py`** — Script de mantenimiento puntual. Recorre las filas existentes en `Noticias` y `Glosario` y reescribe limpias las que tengan HTML residual, entidades sin decodificar o comillas tipográficas. Por defecto ejecuta un dry-run; con el flag `--aplicar` guarda los cambios. Permite limitar la limpieza a una tabla con `--solo noticias` o `--solo glosario`.
+
+---
+
+

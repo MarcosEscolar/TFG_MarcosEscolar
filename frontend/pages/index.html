@@ -4,6 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>GEOSFERA</title>
+  <link rel="icon" type="image/png" href="/imagenes/MundoIcono.png">
   <link rel="stylesheet" href="/css/estilos.css">
 </head>
 <body>
@@ -11,7 +12,7 @@
 <header>
   <h1>GEOSFERA</h1>
   <nav>
-    <a href="/" class="activo">Inicio</a>
+    <a href="/inicio" class="activo">Inicio</a>
     <a href="/glosario">Glosario</a>
     <a href="/fuentes">Fuentes</a>
   </nav>
@@ -24,12 +25,14 @@
     <button class="btn-add" id="btn-add" onclick="abrirModal()">+ Nueva noticia</button>
   </div>
   <div class="barra-filtros">
-    <input type="text" id="buscador-noticias" placeholder="Buscar noticia…" oninput="aplicarFiltros()">
+    <input type="text" id="buscador-noticias" placeholder="Buscar noticia…" oninput="aplicarFiltrosDebounce()">
     <select id="filtro-fuente" onchange="aplicarFiltros()">
       <option value="">Todos los periódicos</option>
     </select>
   </div>
   <div id="feed">Cargando noticias…</div>
+  <div id="paginacion-info" class="paginacion-info"></div>
+  <div id="paginacion" class="paginacion"></div>
 </main>
 
 <!-- Panel de detalle de noticia -->
@@ -111,20 +114,78 @@
 
   async function doLogout() {
     await fetch('/api/auth/logout', { method:'POST', credentials:'include' })
-    usuario = null; location.reload()
+    usuario = null
+    window.location.href = '/'   // tras cerrar sesión, vuelta a la presentación pública
   }
 
-  let todasNoticias = []
+  // ── Estado de paginación y filtros (gestionado en servidor) ──────────────
+  const POR_PAGINA = 12
+  let paginaActual = 1
+  let totalPaginas = 1
+  let totalNoticias = 0
+  let buscadorTimer = null
 
+  // Llamado por <select onchange> → cambio inmediato
   function aplicarFiltros() {
-    const q      = document.getElementById('buscador-noticias').value.toLowerCase().trim()
-    const fuente = document.getElementById('filtro-fuente').value
-    const filtradas = todasNoticias.filter(n => {
-      const coincideTexto  = !q || (n.titulo || '').toLowerCase().includes(q) || (n.resumen_es || '').toLowerCase().includes(q)
-      const coincideFuente = !fuente || (n.fuente || '').trim().toLowerCase() === fuente.trim().toLowerCase()
-      return coincideTexto && coincideFuente
-    })
-    renderNoticias(filtradas)
+    paginaActual = 1
+    cargarNoticias()
+  }
+
+  // Llamado por <input oninput> → debounce de 300 ms para no martillear la API mientras se escribe
+  function aplicarFiltrosDebounce() {
+    clearTimeout(buscadorTimer)
+    buscadorTimer = setTimeout(() => {
+      paginaActual = 1
+      cargarNoticias()
+    }, 300)
+  }
+
+  function irPagina(p) {
+    if (p < 1 || p > totalPaginas || p === paginaActual) return
+    paginaActual = p
+    cargarNoticias()
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
+
+  // Devuelve qué páginas mostrar en la barra (con '...' para huecos).
+  // Ej: actual=5, total=12 → [1, '...', 4, 5, 6, '...', 12]
+  function paginasAMostrar(actual, total) {
+    if (total <= 7) return Array.from({length: total}, (_, i) => i + 1)
+    const set = new Set([1, total, actual, actual - 1, actual + 1])
+    const orden = [...set].filter(p => p >= 1 && p <= total).sort((a, b) => a - b)
+    const result = []
+    for (let i = 0; i < orden.length; i++) {
+      if (i > 0 && orden[i] - orden[i - 1] > 1) result.push('...')
+      result.push(orden[i])
+    }
+    return result
+  }
+
+  function renderPaginacion() {
+    const elInfo = document.getElementById('paginacion-info')
+    const el     = document.getElementById('paginacion')
+
+    if (totalNoticias === 0) {
+      elInfo.textContent = ''
+      el.innerHTML = ''
+      return
+    }
+
+    const desde = (paginaActual - 1) * POR_PAGINA + 1
+    const hasta = Math.min(paginaActual * POR_PAGINA, totalNoticias)
+    /*elInfo.textContent = `Mostrando ${desde}–${hasta} de ${totalNoticias} noticias`
+*/
+    if (totalPaginas <= 1) { el.innerHTML = ''; return }
+
+    const paginas = paginasAMostrar(paginaActual, totalPaginas)
+    el.innerHTML = `
+      <button class="pag-btn" ${paginaActual === 1 ? 'disabled' : ''} onclick="irPagina(${paginaActual - 1})">‹ Anterior</button>
+      ${paginas.map(p => p === '...'
+        ? `<span class="pag-ellipsis">…</span>`
+        : `<button class="pag-btn ${p === paginaActual ? 'activa' : ''}" onclick="irPagina(${p})">${p}</button>`
+      ).join('')}
+      <button class="pag-btn" ${paginaActual === totalPaginas ? 'disabled' : ''} onclick="irPagina(${paginaActual + 1})">Siguiente ›</button>
+    `
   }
 
   async function renderSelectFuentes() {
@@ -179,22 +240,56 @@
 
   async function cargarNoticias() {
     const feed = document.getElementById('feed')
+    feed.innerHTML = '<p style="color:var(--text2)">Cargando…</p>'
+
+    // Construir URL con filtros y paginación
+    const q      = document.getElementById('buscador-noticias').value.trim()
+    const fuente = document.getElementById('filtro-fuente').value
+    const offset = (paginaActual - 1) * POR_PAGINA
+
+    const params = new URLSearchParams({ limite: POR_PAGINA, offset })
+    if (q)      params.set('q', q)
+    if (fuente) params.set('fuente', fuente)
+
     try {
-      const res  = await fetch('/api/noticias/?limite=500', { credentials:'include' })
+      const res  = await fetch(`/api/noticias/?${params}`, { credentials:'include' })
       const data = await res.json()
       if (!res.ok) {
         feed.innerHTML = `<p style="color:var(--rojo)">Error de la API: ${data.error || res.status}</p>`
+        document.getElementById('paginacion').innerHTML = ''
+        document.getElementById('paginacion-info').textContent = ''
         return
       }
+
       const list = data.noticias || []
-      if (!list.length) { feed.innerHTML = '<p style="color:var(--text2)">No hay noticias aún.</p>'; return }
-      todasNoticias = list
+      totalNoticias = data.total ?? list.length
+      totalPaginas  = data.total_paginas ?? 1
+
+      // Si por algún borrado nos hemos quedado fuera de rango, retroceder a la última página existente
+      if (totalNoticias > 0 && paginaActual > totalPaginas) {
+        paginaActual = totalPaginas
+        return cargarNoticias()
+      }
+
       const esAdmin = usuario?.rol === 'admin'
       if (esAdmin) document.getElementById('btn-add').classList.add('visible')
-      await renderSelectFuentes()
-      renderNoticias(list)
+
+      // El selector de fuentes solo se rellena la primera vez
+      if (!document.getElementById('filtro-fuente').dataset.cargado) {
+        await renderSelectFuentes()
+        document.getElementById('filtro-fuente').dataset.cargado = '1'
+      }
+
+      if (!list.length) {
+        feed.innerHTML = '<p style="color:var(--text2)">No hay noticias que coincidan.</p>'
+      } else {
+        renderNoticias(list)
+      }
+      renderPaginacion()
     } catch (err) {
       feed.innerHTML = `<p style="color:var(--rojo)">Error: ${err.message}</p>`
+      document.getElementById('paginacion').innerHTML = ''
+      document.getElementById('paginacion-info').textContent = ''
     }
   }
 
