@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GEOSFERA — Análisis geopolítico, leído entre líneas</title>
+    <link rel="icon" type="image/png" href="/imagenes/MundoIcono.png">
+    <link rel="stylesheet" href="/css/estilos.css">
+</head>
+<body class="page-presentacion">
+
+<!-- ════════════════════════════════════════════════════
+    NAV
+    ════════════════════════════════════════════════════ -->
+<nav class="pres-nav">
+    <a class="pres-nav-logo" href="/presentacion">
+        <img src="/imagenes/Geosfera.png" alt="Logo de GEOSFERA" class="pres-nav-mark">
+        <span class="pres-nav-name">GEOSFERA</span>
+    </a>
+    <div class="pres-nav-links">
+        <a href="#pilares">Qué es</a>
+        <a href="#demo">Glosario</a>
+        <a href="#pipeline">Cómo funciona</a>
+        <a href="#roadmap">Roadmap</a>
+        <a href="/login" class="pres-nav-cta">Acceder →</a>
+    </div>
+</nav>
+
+<!-- ════════════════════════════════════════════════════
+     HERO ASIMÉTRICO
+     Izquierda: titular + claim. Derecha: tarjeta de noticia
+     real con términos hover-able (es el primer "wow" antes
+     de explicar nada).
+     ════════════════════════════════════════════════════ -->
+<section class="pres-hero">
+    <div class="pres-hero-bg" aria-hidden="true"></div>
+    <div class="pres-hero-grid">
+        <div class="pres-hero-text">
+            <span class="pres-tag">Análisis geopolítico abierto · Beta</span>
+            <h1 class="pres-h1">El mundo,<br>leído <span class="pres-h1-em">entre líneas</span>.</h1>
+            <p class="pres-hero-sub">Un agregador de noticias internacionales con análisis de IA, glosario interactivo y contraste de fuentes. Pensado para quien necesita más que el titular.</p>
+            <div class="pres-hero-btns">
+                <a href="/login" class="pres-btn-primary">Entrar a la plataforma</a>
+                <a href="#demo" class="pres-btn-ghost">Probar el glosario ↓</a>
+            </div>
+            <div class="pres-hero-meta">
+                <span><strong>609</strong> noticias indexadas</span>
+                <span class="pres-meta-sep">·</span>
+                <span><strong>8</strong> idiomas</span>
+                <span class="pres-meta-sep">·</span>
+                <span><strong>958</strong> términos en glosario</span>
+            </div>
+        </div>
+        <div class="pres-hero-visual" aria-hidden="true">
+            <article class="pres-card-demo">
+                <div class="pres-card-tema">Oriente Medio</div>
+                <h3>Albares insta a la UE a enviar una "señal fuerte" a Israel</h3>
+                <p>La UE se posiciona como una defensora de los derechos humanos y la <span class="demo-term" data-def="Capacidad de un Estado para tomar decisiones sin interferencia externa.">soberanía</span>; su inacción percibida en este conflicto podría debilitar su <span class="demo-term" data-def="Influencia ejercida mediante atracción cultural, valores e instituciones, no por la fuerza.">poder blando</span>.</p>
+                <div class="pres-card-meta">
+                    <span class="pres-card-fuente">El País</span>
+                    <span class="pres-card-idioma">ES</span>
+                    <span class="pres-card-puls">● en vivo</span>
+                </div>
+            </article>
+        </div>
+    </div>
+    <div class="pres-scroll-cue">Continuar</div>
+</section>
+
+<!-- ════════════════════════════════════════════════════
+     TICKER — banda horizontal de titulares en bucle
+     ════════════════════════════════════════════════════ -->
+<section class="pres-ticker-section" aria-label="Titulares procesados recientemente">
+    <div class="pres-ticker-label">En las últimas 24 h</div>
+    <div class="pres-ticker">
+        <div class="pres-ticker-track">
+            <span>Pekín firma un nuevo acuerdo energético con Riad</span>
+            <span class="pres-ticker-dot"></span>
+            <span>El Bundestag aprueba el paquete de defensa</span>
+            <span class="pres-ticker-dot"></span>
+            <span>Tensión en el estrecho de Ormuz tras un incidente naval</span>
+            <span class="pres-ticker-dot"></span>
+            <span>La Comisión Europea revisa los aranceles a vehículos eléctricos</span>
+            <span class="pres-ticker-dot"></span>
+            <span>Lula impulsa la integración del Mercosur con Asia</span>
+            <span class="pres-ticker-dot"></span>
+            <span>OTAN: cumbre extraordinaria en La Haya</span>
+            <span class="pres-ticker-dot"></span>
+            <span>Sudán reabre el corredor humanitario tras tres semanas</span>
+            <span class="pres-ticker-dot"></span>
+            <!-- Duplicado para bucle sin saltos -->
+            <span>Pekín firma un nuevo acuerdo energético con Riad</span>
+            <span class="pres-ticker-dot"></span>
+            <span>El Bundestag aprueba el paquete de defensa</span>
+            <span class="pres-ticker-dot"></span>
+            <span>Tensión en el estrecho de Ormuz tras un incidente naval</span>
+            <span class="pres-ticker-dot"></span>
+            <span>La Comisión Europea revisa los aranceles a vehículos eléctricos</span>
+            <span class="pres-ticker-dot"></span>
+            <span>Lula impulsa la integración del Mercosur con Asia</span>
+            <span class="pres-ticker-dot"></span>
+            <span>OTAN: cumbre extraordinaria en La Haya</span>
+            <span class="pres-ticker-dot"></span>
+            <span>Sudán reabre el corredor humanitario tras tres semanas</span>
+            <span class="pres-ticker-dot"></span>
+        </div>
+    </div>
+</section>
+
+<!-- ════════════════════════════════════════════════════
+     PILARES — tres ideas, no seis features
+     ════════════════════════════════════════════════════ -->
+<section class="pres-pilares" id="pilares">
+    <div class="pres-section-head reveal">
+        <p class="pres-section-label">Qué es GEOSFERA</p>
+        <h2 class="pres-section-title">Tres ideas, una<br>misma plataforma.</h2>
+    </div>
+    <div class="pres-pilares-grid">
+        <article class="pres-pilar reveal">
+            <div class="pres-pilar-num">01</div>
+            <h3 class="pres-pilar-title">Multifuente, sin filtro político</h3>
+            <p class="pres-pilar-desc">Recogemos titulares de medios europeos, anglosajones, árabes, rusos y asiáticos. La diversidad de origen no es un eslogan — es el esquema de la base de datos.</p>
+        </article>
+        <article class="pres-pilar reveal">
+            <div class="pres-pilar-num">02</div>
+            <h3 class="pres-pilar-title">Enriquecida con IA, no escrita por IA</h3>
+            <p class="pres-pilar-desc">Cada noticia conserva el original. Encima, una capa de análisis con Gemini explica el contexto, identifica los actores y traduce al español. La fuente siempre está enlazada y verificable.</p>
+        </article>
+        <article class="pres-pilar reveal">
+            <div class="pres-pilar-num">03</div>
+            <h3 class="pres-pilar-title">Un glosario que aprende contigo</h3>
+            <p class="pres-pilar-desc">Los conceptos geopolíticos se subrayan en cada artículo y muestran su definición al pasar el ratón. El glosario crece automáticamente cuando aparecen términos nuevos.</p>
+        </article>
+    </div>
+</section>
+
+<!-- ════════════════════════════════════════════════════
+     DEMO INTERACTIVA — glosario en acción
+     Lo más distintivo: el visitante prueba la feature
+     antes de loguearse.
+     ════════════════════════════════════════════════════ -->
+<section class="pres-demo" id="demo">
+    <div class="pres-demo-text reveal">
+        <p class="pres-section-label">El glosario en acción</p>
+        <h2 class="pres-section-title">Pasa el ratón sobre<br>cualquier término <span class="pres-h1-em">subrayado</span>.</h2>
+        <p class="pres-section-sub">Esto es exactamente lo que verás dentro de la plataforma. Sin clicks, sin pestañas nuevas — la definición aparece donde la necesitas y desaparece cuando ya no.</p>
+    </div>
+    <article class="pres-demo-article reveal">
+        <div class="pres-card-tema">Diplomacia</div>
+        <h3>La cumbre del G20 cierra con un comunicado dividido sobre Ucrania</h3>
+        <p>El bloque europeo presionó para incluir una condena explícita a la <span class="demo-term" data-def="Acto unilateral por el cual un Estado anexiona territorio extranjero, generalmente considerado contrario al derecho internacional.">anexión</span> rusa, mientras los países del <span class="demo-term" data-def="Grupo de países emergentes que coordina políticas alternativas al orden occidental: Brasil, Rusia, India, China, Sudáfrica y nuevos miembros desde 2024.">BRICS</span> defendieron una redacción más neutra. El presidente brasileño abogó por una salida diplomática que "respete la <span class="demo-term" data-def="Capacidad de un Estado para tomar decisiones sin interferencia externa.">soberanía</span> de todas las partes" y advirtió contra el uso de <span class="demo-term" data-def="Medidas económicas o políticas restrictivas impuestas por un Estado u organización contra otro para presionarlo.">sanciones</span> como herramienta principal.</p>
+        <div class="pres-demo-hint">↑ pasa el cursor por los términos</div>
+    </article>
+</section>
+
+<!-- ════════════════════════════════════════════════════
+     PIPELINE — timeline vertical numerado
+     ════════════════════════════════════════════════════ -->
+<section class="pres-pipeline" id="pipeline">
+    <div class="pres-section-head reveal">
+        <p class="pres-section-label">Cómo funciona</p>
+        <h2 class="pres-section-title">Del feed RSS al<br>análisis geopolítico.</h2>
+    </div>
+    <ol class="pres-pipeline-steps">
+        <li class="pres-step reveal">
+            <div class="pres-step-num">1</div>
+            <div class="pres-step-body">
+                <h3 class="pres-step-title">Recolección automática</h3>
+                <p class="pres-step-desc">Cada día un scraper barre los feeds RSS de las fuentes activas. Extrae el texto completo cuando es posible, o el resumen del feed cuando el medio bloquea el acceso.</p>
+            </div>
+        </li>
+        <li class="pres-step reveal">
+            <div class="pres-step-num">2</div>
+            <div class="pres-step-body">
+                <h3 class="pres-step-title">Enriquecimiento con IA</h3>
+                <p class="pres-step-desc">Cada noticia pasa por Gemini para traducirse al español, generar un resumen, redactar un análisis geopolítico y asignar tema y términos relevantes. Texto plano siempre — sin marcado oculto.</p>
+            </div>
+        </li>
+        <li class="pres-step reveal">
+            <div class="pres-step-num">3</div>
+            <div class="pres-step-body">
+                <h3 class="pres-step-title">Indexación y glosario</h3>
+                <p class="pres-step-desc">Los términos nuevos se añaden al glosario con su definición y categoría. Antes de insertar, el sistema verifica que no existan ya y sanea el texto.</p>
+            </div>
+        </li>
+        <li class="pres-step reveal">
+            <div class="pres-step-num">4</div>
+            <div class="pres-step-body">
+                <h3 class="pres-step-title">Lectura interactiva</h3>
+                <p class="pres-step-desc">El usuario abre cada noticia con paginación, búsqueda en tiempo real y los términos enlazados al glosario. La fuente original siempre está a un click.</p>
+            </div>
+        </li>
+    </ol>
+</section>
+
+<!-- ════════════════════════════════════════════════════
+     ROADMAP — qué viene en próximas versiones
+     ════════════════════════════════════════════════════ -->
+<section class="pres-roadmap" id="roadmap">
+    <div class="pres-section-head reveal">
+        <p class="pres-section-label">En el horno</p>
+        <h2 class="pres-section-title">Lo que viene<br>en próximas versiones.</h2>
+    </div>
+    <div class="pres-roadmap-grid">
+        <article class="pres-roadmap-card reveal">
+            <span class="pres-roadmap-pill pill-proximo">Próximo</span>
+            <h3>Análisis de sesgo</h3>
+            <p>Tres noticias del mismo evento, tres medios de líneas editoriales distintas, una IA que destila los matices de framing y omisión.</p>
+        </article>
+        <article class="pres-roadmap-card reveal">
+            <span class="pres-roadmap-pill pill-encurso">En curso</span>
+            <h3>Noticias relacionadas</h3>
+            <p>Al abrir una noticia, otras del mismo tema y términos compartidos aparecen en el panel lateral.</p>
+        </article>
+        <article class="pres-roadmap-card reveal">
+            <span class="pres-roadmap-pill pill-planeado">Planeado</span>
+            <h3>Favoritos por usuario</h3>
+            <p>Marca y vuelve a las noticias que te interesan. Sincronizado entre dispositivos.</p>
+        </article>
+        <article class="pres-roadmap-card reveal">
+            <span class="pres-roadmap-pill pill-planeado">Planeado</span>
+            <h3>Dashboard del scraper</h3>
+            <p>Métricas en vivo: noticias por día, fuentes más prolíficas, distribución temática y salud de los feeds.</p>
+        </article>
+    </div>
+</section>
+
+<!-- ════════════════════════════════════════════════════
+     CTA FINAL — con cita editorial
+     ════════════════════════════════════════════════════ -->
+<section class="pres-cta">
+    <div class="pres-cta-inner reveal">
+        <p class="pres-cta-quote">Para entender el mundo no basta con leer noticias. Hay que leerlas con contexto.</p>
+        <h2 class="pres-cta-title">Empieza a leer entre líneas.</h2>
+        <div class="pres-cta-btns">
+            <a href="/login" class="pres-btn-primary">Acceder →</a>
+            <a href="/login" class="pres-btn-ghost">Crear cuenta</a>
+        </div>
+    </div>
+</section>
+
+<!-- ════════════════════════════════════════════════════
+     FOOTER
+     ════════════════════════════════════════════════════ -->
+<footer class="pres-footer">
+    <div class="pres-footer-brand">
+        <img src="/imagenes/Geosfera.png" alt="Logo de GEOSFERA" class="pres-nav-mark">
+        <span class="pres-nav-name">GEOSFERA</span>
+    </div>
+    <div class="pres-footer-links">
+        <a href="/login">Acceder</a>
+        <a href="#pilares">Qué es</a>
+        <a href="#pipeline">Cómo funciona</a>
+        <a href="#roadmap">Roadmap</a>
+    </div>
+    <div class="pres-footer-meta">© 2026 GEOSFERA · Trabajo Fin de Grado · Marcos Escolar</div>
+</footer>
+
+<script>
+    // ── Animación reveal al hacer scroll ──
+    (function () {
+        const items = document.querySelectorAll('.reveal');
+        const io = new IntersectionObserver(entries => {
+            entries.forEach((e, i) => {
+                if (e.isIntersecting) {
+                    setTimeout(() => e.target.classList.add('visible'), (i % 3) * 80);
+                    io.unobserve(e.target);
+                }
+            });
+        }, { threshold: 0.12 });
+        items.forEach(el => io.observe(el));
+    })();
+</script>
+</body>
+</html>

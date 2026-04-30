@@ -40,18 +40,35 @@ def get_noticias():
         offset = int(request.args.get('offset', 0))
 
         tabla = _tabla_noticias(db)
-        query = db.table(tabla).select('*')
+        # count='exact' pide a Supabase el total real de filas que cumplen los filtros,
+        # independientemente de la página devuelta. Queda en result.count.
+        query = db.table(tabla).select('*', count='exact')
         if tema:   query = query.eq('tema', tema)
         if idioma: query = query.eq('idioma', idioma)
         if fuente: query = query.eq('fuente', fuente)
-        if q:      query = query.ilike('titulo', f'%{q}%')
+        if q:
+            # Buscar el texto tanto en el título como en el resumen.
+            # Sanitizamos los caracteres que romperían el operador or_ de PostgREST.
+            q_safe = q.replace(',', ' ').replace('(', ' ').replace(')', ' ')
+            query = query.or_(f'titulo.ilike.%{q_safe}%,resumen_es.ilike.%{q_safe}%')
 
         try:
             result = query.order('id', desc=True).range(offset, offset + limite - 1).execute()
         except Exception:
             result = query.execute()  # fallback sin orden ni paginación
 
-        return jsonify({'noticias': result.data or [], 'total': len(result.data or []), 'tabla': tabla})
+        total = result.count if getattr(result, 'count', None) is not None else len(result.data or [])
+        total_paginas = (total + limite - 1) // limite if limite > 0 else 1
+        pagina_actual = (offset // limite) + 1 if limite > 0 else 1
+
+        return jsonify({
+            'noticias':      result.data or [],
+            'total':         total,
+            'pagina':        pagina_actual,
+            'por_pagina':    limite,
+            'total_paginas': total_paginas,
+            'tabla':         tabla,
+        })
 
     except Exception as e:
         return jsonify({'error': str(e), 'noticias': []}), 500
