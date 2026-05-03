@@ -56,22 +56,22 @@ Responde con este JSON exacto:
   "titulo_es": "título traducido al español (si ya está en español, cópialo igual)",
   "resumen_es": "resumen en español de 2-3 frases, para la tarjeta de la noticia",
   "analisis_es": "{instruccion_analisis}",
-  "tema": "uno de estos temas exactos: Rusia-Ucrania, Oriente Medio, China, Estados Unidos, OTAN, Europa, Asia-Pacífico, América Latina, África, Energía, Economía Global, Terrorismo, Diplomacia, Seguridad",
+  "tema": ["tema_principal"] o ["tema_principal", "tema_secundario"] — array con 1 o 2 valores de esta lista exacta: Oriente Medio, Europa, Rusia-Ucrania, Estados Unidos, China, Asia-Pacífico, América Latina, África, Diplomacia, Seguridad, Economía Global, Energía, Derechos Humanos, Tecnología, Medio Ambiente, Política,
   "terminos_nuevos": [
     {{
       "nombre": "Nombre del término",
       "definicion": "Definición clara en español de 1-2 frases",
-      "categoria": "una de estas categorías exactas: Geopolítica, Derecho Internacional, Economía, Seguridad, Diplomacia, Organizaciones Internacionales"
+      "categoria": "una de estas categorías exactas: Geopolítica, Seguridad, Economía, Derecho Internacional, Diplomacia, Organizaciones Internacionales, Política, Tecnología, Medio Ambiente, Cultura y Sociedad"
     }}
   ]
 }}
 
 REGLAS:
-- El campo "tema" DEBE ser exactamente uno de los valores de la lista, sin variaciones ni traducciones
+- El campo "tema" DEBE ser un array JSON con 1 valor, o excepcionalmente 2 si la noticia cubre dos ámbitos claramente distintos. Nunca más de 2. Usa solo valores de la lista, sin variaciones
 - El campo "categoria" de cada término DEBE ser exactamente uno de los valores de la lista
 - terminos_nuevos solo debe incluir términos geopolíticos relevantes que NO estén ya en el glosario
 - Si no hay términos nuevos relevantes, pon terminos_nuevos como array vacío []
--Los terminos nuevos deben de ser prioritariamente sobre siglas nombres propios, se pueden añadir al glosario breves descripciones de personas si es poco conocido para el publico general yrelevante en la noticia, pero no deben ser el foco principal de los terminos nuevos
+- Los terminos nuevos deben de ser prioritariamente sobre siglas, nombres propios o demas palabras tecnicas; se pueden añadir al glosario breves descripciones de personas si es poco conocido para el publico general y relevante en la noticia, pero no deben ser el foco principal de los terminos nuevos
 - Máximo 3 términos nuevos por noticia
 - El JSON debe ser válido y no contener nada fuera de las llaves
 
@@ -99,11 +99,17 @@ REGLAS DE FORMATO DE TEXTO (MUY IMPORTANTE):
         if not analisis:
             analisis = contenido if tiene_contenido else ''
 
+        # tema puede llegar como array ["x"] o ["x","y"], o como string legacy "x"
+        tema_raw = resultado.get('tema', [])
+        if isinstance(tema_raw, str):
+            tema_raw = [tema_raw] if tema_raw else []
+        tema_raw = [t.strip() for t in tema_raw if isinstance(t, str) and t.strip()][:2]
+
         return {
             'titulo_es':       resultado.get('titulo_es', titulo),
             'resumen_es':      resultado.get('resumen_es', ''),
             'analisis_es':     analisis,
-            'tema':            resultado.get('tema', ''),
+            'tema':            tema_raw,
             'terminos_nuevos': resultado.get('terminos_nuevos', []),
         }
 
@@ -116,6 +122,6 @@ REGLAS DE FORMATO DE TEXTO (MUY IMPORTANTE):
         'titulo_es':       titulo,
         'resumen_es':      resumen_raw[:300] if resumen_raw else '',
         'analisis_es':     contenido if tiene_contenido else '',
-        'tema':            '',
+        'tema':            [],
         'terminos_nuevos': [],
     }

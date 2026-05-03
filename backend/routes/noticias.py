@@ -43,7 +43,7 @@ def get_noticias():
         # count='exact' pide a Supabase el total real de filas que cumplen los filtros,
         # independientemente de la página devuelta. Queda en result.count.
         query = db.table(tabla).select('*', count='exact')
-        if tema:   query = query.eq('tema', tema)
+        if tema:   query = query.contains('tema', [tema])
         if idioma: query = query.eq('idioma', idioma)
         if fuente: query = query.eq('fuente', fuente)
         if q:
@@ -111,7 +111,7 @@ def create_noticia():
             'url':        data['url'],
             'fuente':     data['fuente'],
             'idioma':     data.get('idioma', 'ES'),
-            'tema':       data.get('tema', ''),
+            'tema':       _str_a_array(data.get('tema', '')),
             'terminos':   _str_a_array(data.get('terminos', '')),
         }
 
@@ -139,9 +139,11 @@ def update_noticia(noticia_id):
 
         campos = ('titulo', 'resumen_es', 'contenido', 'url', 'fuente', 'idioma', 'tema', 'terminos')
         update_data = {k: v for k, v in (data or {}).items() if k in campos}
-        # Convertir terminos a array si viene como string
+        # Convertir terminos y tema a array si vienen como string
         if 'terminos' in update_data:
             update_data['terminos'] = _str_a_array(update_data['terminos'])
+        if 'tema' in update_data:
+            update_data['tema'] = _str_a_array(update_data['tema'])
 
         if not update_data:
             return jsonify({'error': 'No hay datos para actualizar.'}), 400
@@ -177,7 +179,16 @@ def get_temas():
     try:
         db = get_db()
         result = db.table('Noticias').select('tema').execute()
-        temas = sorted(set(n['tema'] for n in (result.data or []) if n.get('tema')))
+        temas_set = set()
+        for n in (result.data or []):
+            val = n.get('tema')
+            if not val:
+                continue
+            if isinstance(val, list):
+                temas_set.update(t for t in val if t)
+            else:
+                temas_set.add(val)
+        temas = sorted(temas_set)
         return jsonify(temas)
     except Exception as e:
         return jsonify([])

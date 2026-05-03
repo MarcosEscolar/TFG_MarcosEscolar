@@ -75,7 +75,7 @@ def guardar_noticia(db, noticia):
             'url':         noticia['url'],
             'fuente':      noticia['fuente'],
             'idioma':      noticia['idioma'],
-            'tema':        limpiar_texto(noticia['tema']),
+            'tema':        [limpiar_texto(t) for t in noticia.get('tema', []) if t],
             'terminos':    [],
         }
         result = db.table('Noticias').insert(nueva).execute()
