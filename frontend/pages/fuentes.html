@@ -15,6 +15,7 @@
     <a href="/inicio">Inicio</a>
     <a href="/glosario">Glosario</a>
     <a href="/fuentes" class="activo">Fuentes</a>
+    <a href="/scraper" class="nav-solo-admin">Scraper</a>
   </nav>
   <div id="nav-auth"></div>
 </header>
@@ -121,6 +122,8 @@
         <span>${usuario.nombre}</span>
         <button class="nav-auth-btn" onclick="doLogout()">Salir</button>
       </div>`
+    if (usuario.rol === 'admin')
+      document.querySelectorAll('.nav-solo-admin').forEach(el => el.style.display = 'inline')
   }
 
   async function doLogout() {

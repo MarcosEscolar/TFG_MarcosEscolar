@@ -15,6 +15,7 @@
     <a href="/inicio">Inicio</a>
     <a href="/glosario" class="activo">Glosario</a>
     <a href="/fuentes">Fuentes</a>
+    <a href="/scraper" class="nav-solo-admin">Scraper</a>
   </nav>
   <div id="nav-auth"></div>
 </header>
@@ -24,8 +25,15 @@
     <h2>Glosario geopolítico</h2>
     <button class="btn-add" id="btn-add" onclick="abrirModal()">+ Nuevo término</button>
   </div>
-  <input type="text" id="buscador" placeholder="Buscar término…" oninput="filtrar()">
+  <div class="barra-filtros">
+    <input type="text" id="buscador" placeholder="Buscar término o definición…" oninput="filtrarDebounce()">
+    <select id="filtro-categoria" onchange="aplicarFiltros()">
+      <option value="">Todas las categorías</option>
+    </select>
+  </div>
   <div id="lista-glosario">Cargando términos…</div>
+  <div id="paginacion-info" class="paginacion-info"></div>
+  <div id="paginacion" class="paginacion"></div>
 </main>
 
 <!-- Modal término -->
@@ -52,14 +60,65 @@
 
 <script>
   let usuario = null
-  let todosTerminos = []
 
+  // ── Paginación ─────────────────────────────────────────────────────────────
+  const POR_PAGINA   = 30
+  let paginaActual   = 1
+  let totalPaginas   = 1
+  let totalTerminos  = 0
+  let buscadorTimer  = null
+
+  function aplicarFiltros() {
+    paginaActual = 1
+    cargarGlosario()
+  }
+
+  function filtrarDebounce() {
+    clearTimeout(buscadorTimer)
+    buscadorTimer = setTimeout(() => { paginaActual = 1; cargarGlosario() }, 300)
+  }
+
+  function irPagina(p) {
+    if (p < 1 || p > totalPaginas || p === paginaActual) return
+    paginaActual = p
+    cargarGlosario()
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
+
+  function paginasAMostrar(actual, total) {
+    if (total <= 7) return Array.from({ length: total }, (_, i) => i + 1)
+    const set   = new Set([1, total, actual, actual - 1, actual + 1])
+    const orden = [...set].filter(p => p >= 1 && p <= total).sort((a, b) => a - b)
+    const result = []
+    for (let i = 0; i < orden.length; i++) {
+      if (i > 0 && orden[i] - orden[i - 1] > 1) result.push('...')
+      result.push(orden[i])
+    }
+    return result
+  }
+
+  function renderPaginacion() {
+    const el = document.getElementById('paginacion')
+    if (totalPaginas <= 1) { el.innerHTML = ''; return }
+    const paginas = paginasAMostrar(paginaActual, totalPaginas)
+    el.innerHTML = `
+      <button class="pag-btn" ${paginaActual === 1 ? 'disabled' : ''} onclick="irPagina(${paginaActual - 1})">‹ Anterior</button>
+      ${paginas.map(p => p === '...'
+        ? `<span class="pag-ellipsis">…</span>`
+        : `<button class="pag-btn ${p === paginaActual ? 'activa' : ''}" onclick="irPagina(${p})">${p}</button>`
+      ).join('')}
+      <button class="pag-btn" ${paginaActual === totalPaginas ? 'disabled' : ''} onclick="irPagina(${paginaActual + 1})">Siguiente ›</button>
+    `
+  }
+
+  // ── Auth ───────────────────────────────────────────────────────────────────
   async function iniciar() {
     try {
       const res = await fetch('/api/auth/me', { credentials:'include' })
       if (res.ok) { usuario = await res.json(); renderNavUsuario() }
       else { window.location.replace('/login'); return }
     } catch { window.location.replace('/login'); return }
+    await cargarCategorias()
     cargarGlosario()
   }
 
@@ -70,34 +129,71 @@
         <span>${usuario.nombre}</span>
         <button class="nav-auth-btn" onclick="doLogout()">Salir</button>
       </div>`
+    if (usuario.rol === 'admin')
+      document.querySelectorAll('.nav-solo-admin').forEach(el => el.style.display = 'inline')
   }
 
   async function doLogout() {
     await fetch('/api/auth/logout', { method:'POST', credentials:'include' })
-    usuario = null; location.reload()
+    usuario = null; window.location.href = '/'
   }
 
-  async function cargarGlosario() {
+  // ── Selector de categorías ─────────────────────────────────────────────────
+  async function cargarCategorias() {
     try {
-      const res = await fetch('/api/glosario/', { credentials:'include' })
-      todosTerminos = await res.json()
-      renderTerminos(todosTerminos)
-      if (usuario?.rol === 'admin') document.getElementById('btn-add').classList.add('visible')
-    } catch (err) {
-      document.getElementById('lista-glosario').innerHTML = `<p style="color:var(--rojo)">Error: ${err.message}</p>`
-    }
+      const res  = await fetch('/api/glosario/categorias', { credentials:'include' })
+      const cats = await res.json()
+      const sel  = document.getElementById('filtro-categoria')
+      cats.forEach(c => {
+        const opt = document.createElement('option')
+        opt.value = c; opt.textContent = c
+        sel.appendChild(opt)
+      })
+    } catch {}
   }
 
-  function filtrar() {
-    const q = document.getElementById('buscador').value.toLowerCase().trim()
-    renderTerminos(q ? todosTerminos.filter(t =>
-      t.nombre?.toLowerCase().includes(q) || t.definicion?.toLowerCase().includes(q)
-    ) : todosTerminos)
+  // ── Carga paginada ─────────────────────────────────────────────────────────
+  async function cargarGlosario() {
+    const contenedor = document.getElementById('lista-glosario')
+    contenedor.innerHTML = '<p style="color:var(--text2)">Cargando…</p>'
+
+    const q         = document.getElementById('buscador').value.trim()
+    const categoria = document.getElementById('filtro-categoria').value
+    const offset    = (paginaActual - 1) * POR_PAGINA
+
+    const params = new URLSearchParams({ limite: POR_PAGINA, offset })
+    if (q)         params.set('q', q)
+    if (categoria) params.set('categoria', categoria)
+
+    try {
+      const res  = await fetch(`/api/glosario/?${params}`, { credentials:'include' })
+      const data = await res.json()
+      if (!res.ok) {
+        contenedor.innerHTML = `<p style="color:var(--rojo)">Error: ${data.error || res.status}</p>`
+        return
+      }
+
+      const list = data.terminos || []
+      totalTerminos = data.total ?? list.length
+      totalPaginas  = data.total_paginas ?? 1
+
+      if (totalTerminos > 0 && paginaActual > totalPaginas) {
+        paginaActual = totalPaginas
+        return cargarGlosario()
+      }
+
+      if (usuario?.rol === 'admin') document.getElementById('btn-add').classList.add('visible')
+
+      renderTerminos(list)
+      renderPaginacion()
+    } catch (err) {
+      contenedor.innerHTML = `<p style="color:var(--rojo)">Error: ${err.message}</p>`
+    }
   }
 
   function renderTerminos(list) {
     const contenedor = document.getElementById('lista-glosario')
-    if (!list.length) { contenedor.innerHTML = '<p style="color:var(--text2)">No hay términos.</p>'; return }
+    if (!list.length) { contenedor.innerHTML = '<p style="color:var(--text2)">No hay términos que coincidan.</p>'; return }
     const esAdmin = usuario?.rol === 'admin'
     contenedor.innerHTML = list.map(t => `
       <div class="tarjeta-termino">
@@ -124,6 +220,7 @@
     }
   }
 
+  // ── CRUD modal ─────────────────────────────────────────────────────────────
   function abrirModal(t = null) {
     document.getElementById('modal-titulo').textContent = t ? 'Editar término' : 'Nuevo término'
     document.getElementById('t-id').value          = t?.id || ''
@@ -173,10 +270,7 @@
     try {
       const res = await fetch(`/api/glosario/${id}`, { method:'DELETE', credentials:'include' })
       if (res.ok) cargarGlosario()
-      else {
-        const data = await res.json()
-        alert(data.error || 'No se pudo eliminar')
-      }
+      else { const data = await res.json(); alert(data.error || 'No se pudo eliminar') }
     } catch (err) { alert('Error de conexión: ' + err.message) }
   }
 

@@ -115,9 +115,11 @@ def guardar_resultados(db, articulos_enriquecidos, urls_existentes, nombres_glos
     - Inserta en Glosario los términos nuevos sugeridos por la IA
     Devuelve estadísticas del proceso.
     """
-    noticias_guardadas  = 0
-    noticias_duplicadas = 0
-    terminos_guardados  = 0
+    noticias_guardadas   = 0
+    noticias_duplicadas  = 0
+    noticias_error       = 0
+    terminos_guardados   = 0
+    guardadas_por_fuente = {}   # {nombre_fuente: int} → para ScraperFuentes
 
     # Copia mutable para no repetir términos dentro de la misma ejecución
     nombres_vistos = set(nombres_glosario)
@@ -132,6 +134,10 @@ def guardar_resultados(db, articulos_enriquecidos, urls_existentes, nombres_glos
         if ok:
             noticias_guardadas += 1
             urls_existentes.add(art['url'])
+            fuente = art.get('fuente', '')
+            guardadas_por_fuente[fuente] = guardadas_por_fuente.get(fuente, 0) + 1
+        else:
+            noticias_error += 1
 
         # ── Términos del glosario ─────────────────────────────────────────
         for termino in art.get('terminos_nuevos', []):
@@ -145,7 +151,9 @@ def guardar_resultados(db, articulos_enriquecidos, urls_existentes, nombres_glos
                 print(f'  [GLOSARIO] Término añadido: {termino["nombre"]}')
 
     return {
-        'noticias_guardadas':  noticias_guardadas,
-        'noticias_duplicadas': noticias_duplicadas,
-        'terminos_guardados':  terminos_guardados,
+        'noticias_guardadas':   noticias_guardadas,
+        'noticias_duplicadas':  noticias_duplicadas,
+        'noticias_error':       noticias_error,
+        'terminos_guardados':   terminos_guardados,
+        'guardadas_por_fuente': guardadas_por_fuente,
     }

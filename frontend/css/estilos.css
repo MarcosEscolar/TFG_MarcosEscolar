@@ -96,6 +96,9 @@ nav {
   gap: 0.25rem;
 }
 
+/* Enlace solo visible para admins — se muestra vía JS en renderNavUsuario */
+.nav-solo-admin { display: none; }
+
 nav a {
   font-family: 'Syne', sans-serif;
   font-size: 0.8rem;
@@ -697,6 +700,10 @@ main > p.subtitulo {
 .tab-btn.activo { background:var(--accent); color:#fff; box-shadow:0 2px 8px rgba(59,130,246,.35); }
 .btn-submit { width:100%; font-family:'Syne',sans-serif; font-size:.85rem; font-weight:700; letter-spacing:.04em; padding:.65rem; border-radius:var(--radius-sm); border:none; background:var(--accent); color:#fff; cursor:pointer; transition:opacity .15s; margin-top:.25rem; }
 .btn-submit:hover { opacity:.88; }
+.pass-wrap { position:relative; display:flex; align-items:center; }
+.pass-wrap input { flex:1; padding-right:2.6rem; }
+.pass-toggle { position:absolute; right:.55rem; background:none; border:none; cursor:pointer; font-size:1rem; line-height:1; color:var(--text2); padding:.2rem; transition:color .15s; }
+.pass-toggle:hover { color:var(--accent); }
 .divider { height:1px; background:var(--border); margin:1.5rem 0; }
 .prueba-bloque { margin-bottom:.25rem; }
 .prueba-titulo { font-family:'Syne',sans-serif; font-size:.68rem; font-weight:700; letter-spacing:.08em; text-transform:uppercase; color:var(--text2); margin-bottom:.65rem; text-align:center; }
@@ -840,6 +847,17 @@ main > p.subtitulo {
   width: 100%;
   align-items: center;
 }
+
+.pres-hero-center {
+  position: relative;
+  max-width: 780px;
+  margin: 0 auto;
+  width: 100%;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
 .pres-tag {
   display: inline-block;
   font-family: 'Syne', sans-serif;
@@ -876,7 +894,7 @@ main > p.subtitulo {
   line-height: 1.65;
   color: var(--text2);
   margin-bottom: 36px;
-  max-width: 540px;
+  max-width: 680px;
 }
 .pres-hero-btns {
   display: flex;
@@ -1480,6 +1498,95 @@ main > p.subtitulo {
   letter-spacing: 0.04em;
 }
 
+/* ── Panel de contraste de fuentes (hero) ── */
+.pres-contraste {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.pres-contraste-label {
+  font-family: 'Syne', sans-serif;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--accent2);
+  margin-bottom: 16px;
+  opacity: 0.8;
+}
+
+.pres-contraste-card {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--accent);
+  border-radius: var(--radius);
+  padding: 18px 20px;
+  transition: transform .25s ease, border-left-color .25s ease, box-shadow .25s ease;
+  position: relative;
+}
+
+.pres-contraste-card + .pres-contraste-card {
+  margin-top: -6px;
+}
+
+.pres-contraste-card:hover {
+  transform: translateX(6px);
+  box-shadow: 0 8px 28px rgba(0,0,0,0.35);
+  z-index: 2;
+}
+
+.pres-contraste-card--1 { border-left-color: var(--accent); }
+.pres-contraste-card--2 { border-left-color: var(--verde); opacity: 0.92; }
+.pres-contraste-card--3 { border-left-color: var(--naranja); opacity: 0.84; }
+
+.pres-contraste-card--1:hover { border-left-color: var(--accent2); opacity: 1; }
+.pres-contraste-card--2:hover { border-left-color: var(--verde);   opacity: 1; }
+.pres-contraste-card--3:hover { border-left-color: var(--naranja); opacity: 1; }
+
+.pres-contraste-fuente {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: 'Syne', sans-serif;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--text2);
+  margin-bottom: 10px;
+}
+
+.pres-contraste-lang {
+  font-size: 0.65rem;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  color: var(--bg);
+  background: var(--text2);
+  padding: 2px 6px;
+  border-radius: 3px;
+}
+
+.pres-contraste-card--1 .pres-contraste-lang { background: var(--accent2); }
+.pres-contraste-card--2 .pres-contraste-lang { background: var(--verde); }
+.pres-contraste-card--3 .pres-contraste-lang { background: var(--naranja); }
+
+.pres-contraste-card p {
+  font-size: 0.92rem;
+  line-height: 1.55;
+  color: var(--text);
+  font-style: italic;
+  margin: 0 0 10px;
+}
+
+.pres-contraste-tema {
+  font-family: 'Syne', sans-serif;
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  color: var(--text3);
+  text-transform: uppercase;
+}
+
 /* ── Responsivo ── */
 @media (max-width: 1000px) {
   .pres-hero-grid { grid-template-columns: 1fr; gap: 48px; }
@@ -1501,4 +1608,256 @@ main > p.subtitulo {
   .pres-pilares, .pres-pipeline, .pres-roadmap, .pres-cta { padding-top: 70px; padding-bottom: 70px; }
   .pres-card-demo { transform: none; }
   .pres-cta-inner { padding: 44px 24px; }
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   DASHBOARD DEL SCRAPER (scraper.html)
+   ══════════════════════════════════════════════════════════════════ */
+
+/* Wrapper — ancho mayor que el main estándar (1100px) */
+main.dash-wrap {
+  max-width: 1400px;
+  padding: 0 24px 60px;
+}
+
+/* ── Cabecera interna del dashboard ── */
+.dash-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 28px 0 24px;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 28px;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+.dash-header h1 {
+  font-family: 'Syne', sans-serif;
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--text);
+}
+.dash-header p {
+  font-size: 0.85rem;
+  color: var(--text2);
+  margin-top: 2px;
+}
+
+/* ── Indicador de estado del scraper ── */
+.dash-estado {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 16px;
+  border-radius: 999px;
+  border: 1px solid var(--border2);
+  background: var(--bg2);
+  font-size: 0.83rem;
+  font-family: 'Syne', sans-serif;
+}
+.dash-estado-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--text3);
+  flex-shrink: 0;
+}
+.dash-estado.corriendo .dash-estado-dot {
+  background: var(--verde);
+  box-shadow: 0 0 8px var(--verde);
+  animation: pulse-dot 1.5s infinite;
+}
+.dash-estado.ok     .dash-estado-dot { background: var(--verde); }
+.dash-estado.alerta .dash-estado-dot { background: var(--naranja); }
+.dash-estado.error  .dash-estado-dot { background: var(--rojo); }
+
+@keyframes pulse-dot {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.4; }
+}
+
+/* ── Alerta de sin ejecución reciente ── */
+.dash-alerta {
+  display: none;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 20px;
+  background: rgba(245,158,11,0.08);
+  border: 1px solid rgba(245,158,11,0.3);
+  border-radius: var(--radius);
+  color: var(--naranja);
+  font-size: 0.88rem;
+  margin-bottom: 24px;
+}
+.dash-alerta.visible { display: flex; }
+.dash-alerta-icon { font-size: 1.1rem; flex-shrink: 0; }
+
+/* ── KPI cards ── */
+.dash-kpis {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 16px;
+  margin-bottom: 28px;
+}
+.kpi-card {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 20px 18px 16px;
+}
+.kpi-label {
+  font-size: 0.75rem;
+  color: var(--text2);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-family: 'Syne', sans-serif;
+  margin-bottom: 8px;
+}
+.kpi-value {
+  font-size: 2rem;
+  font-weight: 700;
+  font-family: 'Syne', sans-serif;
+  color: var(--text);
+  line-height: 1;
+}
+.kpi-sub {
+  font-size: 0.78rem;
+  color: var(--text3);
+  margin-top: 6px;
+}
+.kpi-card.accent  .kpi-value { color: var(--accent2); }
+.kpi-card.verde   .kpi-value { color: var(--verde); }
+.kpi-card.naranja .kpi-value { color: var(--naranja); }
+
+/* ── Etiqueta de sección del dashboard ── */
+/* Reutiliza la fuente y estilo de .titulo-seccion pero como texto suelto */
+.dash-section-title {
+  font-family: 'Syne', sans-serif;
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text2);
+  margin-bottom: 16px;
+}
+
+/* ── Grid de gráficos ── */
+.dash-charts-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 20px;
+  margin-bottom: 28px;
+}
+/* Reutiliza el patrón visual de .tarjeta/.tarjeta-termino */
+.chart-card {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 20px;
+}
+.chart-card h3 {
+  font-family: 'Syne', sans-serif;
+  font-size: 0.82rem;
+  color: var(--text2);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin-bottom: 16px;
+}
+.chart-card canvas { display: block; margin: 0 auto; }
+.chart-card.wide   { grid-column: 1 / -1; }
+
+/* ── Selector de run ── */
+.dash-run-selector {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+}
+.dash-run-selector label { font-size: 0.85rem; color: var(--text2); }
+/* El <select> reutiliza .barra-filtros select — se añade solo la clase .dash-run-selector select */
+.dash-run-selector select {
+  background: var(--bg2);
+  border: 1px solid var(--border2);
+  border-radius: var(--radius-sm);
+  color: var(--text);
+  padding: 6px 12px;
+  font-size: 0.85rem;
+  cursor: pointer;
+  outline: none;
+}
+.dash-run-selector select:focus { border-color: var(--accent); }
+
+/* ── Contenedor de tabla con borde ── */
+.table-wrap {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+  margin-bottom: 28px;
+}
+
+/* ── Tabla genérica del dashboard ── */
+/* Estilos base compartidos por .dash-fuentes-table y .dash-historial-table */
+.dash-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.87rem;
+}
+.dash-table th {
+  text-align: left;
+  padding: 10px 14px;
+  color: var(--text2);
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  border-bottom: 1px solid var(--border);
+  font-family: 'Syne', sans-serif;
+  font-weight: 400;
+}
+.dash-table td {
+  padding: 11px 14px;
+  border-bottom: 1px solid var(--border);
+  color: var(--text);
+  vertical-align: middle;
+}
+.dash-table tr:last-child td { border-bottom: none; }
+.dash-table tr:hover td      { background: var(--bg3); }
+.dash-table tr.activo td     { background: rgba(59,130,246,0.06); }
+.dash-table tr[onclick]      { cursor: pointer; }
+
+/* ── Badges de salud de fuente ── */
+/* Distintos de .badge (activa/inactiva de fuentes) — estos son inline con icono */
+.badge-ok   { color: var(--verde);   font-size: 0.78rem; font-family: 'Syne', sans-serif; font-weight: 600; }
+.badge-error{ color: var(--rojo);    font-size: 0.78rem; font-family: 'Syne', sans-serif; font-weight: 600; }
+.badge-warn { color: var(--naranja); font-size: 0.78rem; font-family: 'Syne', sans-serif; font-weight: 600; }
+
+/* ── Pills de estado de ejecución ── */
+/* Distintas de .pres-roadmap-pill (presentación) — estas van en tablas */
+.pill {
+  display: inline-block;
+  padding: 2px 10px;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-family: 'Syne', sans-serif;
+  font-weight: 600;
+}
+.pill-completado { background: rgba(16,185,129,0.12);  color: var(--verde); }
+.pill-error      { background: rgba(239,68,68,0.12);   color: var(--rojo); }
+.pill-en_curso   { background: rgba(245,158,11,0.12);  color: var(--naranja); }
+
+/* ── Estado vacío / cargando ── */
+.dash-empty {
+  text-align: center;
+  padding: 40px 20px;
+  color: var(--text3);
+  font-size: 0.88rem;
+}
+
+/* ── Responsive dashboard ── */
+@media (max-width: 1000px) {
+  .dash-charts-grid { grid-template-columns: repeat(2, 1fr); }
+}
+@media (max-width: 600px) {
+  .dash-charts-grid { grid-template-columns: 1fr; }
+  .dash-kpis        { grid-template-columns: repeat(2, 1fr); }
 }

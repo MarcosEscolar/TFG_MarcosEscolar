@@ -1,0 +1,481 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GEOSFERA — Dashboard Scraper</title>
+    <link rel="icon" type="image/png" href="/imagenes/Geosfera_icon.png">
+    <link rel="stylesheet" href="/css/estilos.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+</head>
+<body>
+
+<header>
+  <h1>GEOSFERA</h1>
+  <nav>
+    <a href="/inicio">Inicio</a>
+    <a href="/glosario">Glosario</a>
+    <a href="/fuentes">Fuentes</a>
+    <a href="/scraper" class="activo">Scraper</a>
+  </nav>
+  <div id="nav-auth"></div>
+</header>
+
+<!-- ─── CONTENIDO ──────────────────────────────────────────────────────────── -->
+<main class="dash-wrap">
+
+    <!-- Cabecera -->
+    <div class="dash-header">
+        <div>
+            <h1>Dashboard del scraper</h1>
+            <p id="dash-ultima-fecha">Cargando datos…</p>
+        </div>
+        <div class="dash-estado" id="dash-estado">
+            <div class="dash-estado-dot"></div>
+            <span id="dash-estado-texto">Comprobando…</span>
+        </div>
+    </div>
+
+    <!-- Alerta: sin ejecución reciente -->
+    <div class="dash-alerta" id="dash-alerta">
+        <span class="dash-alerta-icon">⚠</span>
+        <span id="dash-alerta-texto">Han pasado más de 24 h sin una ejecución completada del scraper.</span>
+    </div>
+
+    <!-- KPIs -->
+    <div class="dash-kpis" id="dash-kpis">
+        <div class="kpi-card accent">
+            <div class="kpi-label">Noticias en BD</div>
+            <div class="kpi-value" id="kpi-noticias">—</div>
+            <div class="kpi-sub">total indexadas</div>
+        </div>
+        <div class="kpi-card">
+            <div class="kpi-label">Términos en glosario</div>
+            <div class="kpi-value" id="kpi-glosario">—</div>
+            <div class="kpi-sub">total en BD</div>
+        </div>
+        <div class="kpi-card verde">
+            <div class="kpi-label">Último scrapeo</div>
+            <div class="kpi-value" id="kpi-ultimo-guardadas">—</div>
+            <div class="kpi-sub" id="kpi-ultimo-sub">noticias guardadas</div>
+        </div>
+        <div class="kpi-card">
+            <div class="kpi-label">Términos añadidos</div>
+            <div class="kpi-value" id="kpi-ultimo-terminos">—</div>
+            <div class="kpi-sub">en el último run</div>
+        </div>
+        <div class="kpi-card naranja">
+            <div class="kpi-label">Duración</div>
+            <div class="kpi-value" id="kpi-duracion">—</div>
+            <div class="kpi-sub">último run (segundos)</div>
+        </div>
+        <div class="kpi-card">
+            <div class="kpi-label">Ejecuciones totales</div>
+            <div class="kpi-value" id="kpi-runs">—</div>
+            <div class="kpi-sub">en historial</div>
+        </div>
+    </div>
+
+    <!-- Gráficos -->
+    <p class="dash-section-title">Distribución</p>
+    <div class="dash-charts-grid">
+        <div class="chart-card">
+            <h3>Temas de noticias</h3>
+            <canvas id="chart-temas" height="220"></canvas>
+        </div>
+        <div class="chart-card">
+            <h3>Categorías del glosario</h3>
+            <canvas id="chart-glosario" height="220"></canvas>
+        </div>
+        <div class="chart-card">
+            <h3>Noticias por idioma</h3>
+            <canvas id="chart-idiomas" height="220"></canvas>
+        </div>
+        <div class="chart-card wide">
+            <h3>Noticias guardadas por ejecución (últimas 30)</h3>
+            <canvas id="chart-historial" height="110"></canvas>
+        </div>
+    </div>
+
+    <!-- Fuentes del run seleccionado -->
+    <div class="dash-run-selector">
+        <label for="run-select">Ver informe de ejecución:</label>
+        <select id="run-select">
+            <option value="">Cargando…</option>
+        </select>
+    </div>
+
+    <p class="dash-section-title">Salud por fuente</p>
+    <div class="chart-card" style="margin-bottom:28px;">
+        <h3>Aportación por fuente (run seleccionado)</h3>
+        <canvas id="chart-fuentes" height="80"></canvas>
+    </div>
+
+    <div class="table-wrap" id="tabla-fuentes-wrap">
+        <table class="dash-table">
+            <thead>
+                <tr>
+                    <th>Fuente</th>
+                    <th>Estado</th>
+                    <th>Artículos recibidos</th>
+                    <th>Guardados</th>
+                    <th>Error</th>
+                </tr>
+            </thead>
+            <tbody id="tabla-fuentes-body">
+                <tr><td colspan="5" class="dash-empty">Selecciona una ejecución</td></tr>
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Historial de ejecuciones -->
+    <p class="dash-section-title">Historial de ejecuciones</p>
+    <div class="table-wrap">
+        <table class="dash-table">
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>Fecha</th>
+                    <th>Estado</th>
+                    <th>Guardadas</th>
+                    <th>Duplicadas</th>
+                    <th>Errores</th>
+                    <th>Términos</th>
+                    <th>Duración</th>
+                </tr>
+            </thead>
+            <tbody id="tabla-historial-body">
+                <tr><td colspan="8" class="dash-empty">Cargando…</td></tr>
+            </tbody>
+        </table>
+    </div>
+
+</main>
+
+<script>
+// ── Paleta de colores para Chart.js (coherente con el tema oscuro) ──────────
+const PALETTE = [
+    '#3b82f6','#10b981','#f59e0b','#ef4444','#8b5cf6',
+    '#06b6d4','#f97316','#ec4899','#84cc16','#14b8a6',
+    '#a855f7','#fb923c','#22d3ee','#4ade80','#fbbf24',
+    '#e879f9','#34d399',
+];
+
+const CHART_DEFAULTS = {
+    plugins: {
+        legend: {
+            labels: { color: '#94a3b8', font: { family: 'Syne, sans-serif', size: 11 }, boxWidth: 12 }
+        },
+        tooltip: {
+            backgroundColor: '#111520',
+            borderColor: '#1e2535',
+            borderWidth: 1,
+            titleColor: '#e2e8f0',
+            bodyColor: '#94a3b8',
+        }
+    }
+};
+
+// ── Instancias de Chart.js ───────────────────────────────────────────────────
+let chartTemas, chartGlosario, chartIdiomas, chartHistorial, chartFuentes;
+
+function crearDoughnut(canvasId, labels, data) {
+    const ctx = document.getElementById(canvasId).getContext('2d');
+    return new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+            labels,
+            datasets: [{
+                data,
+                backgroundColor: PALETTE.slice(0, data.length),
+                borderColor: '#0a0d12',
+                borderWidth: 2,
+            }]
+        },
+        options: {
+            cutout: '62%',
+            ...CHART_DEFAULTS,
+            plugins: {
+                ...CHART_DEFAULTS.plugins,
+                legend: { ...CHART_DEFAULTS.plugins.legend, position: 'bottom' }
+            }
+        }
+    });
+}
+
+function actualizarDoughnut(chart, labels, data) {
+    chart.data.labels = labels;
+    chart.data.datasets[0].data = data;
+    chart.data.datasets[0].backgroundColor = PALETTE.slice(0, data.length);
+    chart.update();
+}
+
+// ── Utilidades ───────────────────────────────────────────────────────────────
+function formatFecha(isoStr) {
+    if (!isoStr) return '—';
+    const d = new Date(isoStr);
+    return d.toLocaleString('es-ES', {
+        day: '2-digit', month: '2-digit', year: 'numeric',
+        hour: '2-digit', minute: '2-digit'
+    });
+}
+
+function horasDesde(isoStr) {
+    if (!isoStr) return Infinity;
+    return (Date.now() - new Date(isoStr).getTime()) / 3_600_000;
+}
+
+// ── Estado del scraper ────────────────────────────────────────────────────────
+async function actualizarEstado() {
+    try {
+        const res  = await fetch('/api/scraper/estado', { credentials: 'include' });
+        const data = await res.json();
+        const el   = document.getElementById('dash-estado');
+        const txt  = document.getElementById('dash-estado-texto');
+
+        if (data.corriendo) {
+            el.className = 'dash-estado corriendo';
+            txt.textContent = `Ejecutando… (desde ${formatFecha(data.inicio)})`;
+        } else {
+            el.className = 'dash-estado ok';
+            txt.textContent = 'Inactivo';
+        }
+    } catch {
+        document.getElementById('dash-estado-texto').textContent = 'Sin conexión';
+    }
+}
+
+// ── Carga principal ───────────────────────────────────────────────────────────
+async function cargarDashboard() {
+    try {
+        const res  = await fetch('/api/scraper/stats', { credentials: 'include' });
+        const data = await res.json();
+
+        if (data.error) {
+            console.error('[Dashboard]', data.error);
+            return;
+        }
+
+        const { ultimo_run, fuentes_ultimo, historial, temas_noticias,
+                categorias_glosario, idiomas, totales } = data;
+
+        // ── KPIs ──────────────────────────────────────────────────────
+        document.getElementById('kpi-noticias').textContent  = totales.noticias.toLocaleString('es');
+        document.getElementById('kpi-glosario').textContent  = totales.glosario.toLocaleString('es');
+        document.getElementById('kpi-runs').textContent      = totales.runs;
+
+        if (ultimo_run) {
+            document.getElementById('kpi-ultimo-guardadas').textContent = ultimo_run.noticias_guardadas;
+            document.getElementById('kpi-ultimo-terminos').textContent  = ultimo_run.terminos_guardados;
+            document.getElementById('kpi-duracion').textContent         =
+                ultimo_run.duracion_segundos != null ? `${ultimo_run.duracion_segundos}s` : '—';
+            document.getElementById('kpi-ultimo-sub').textContent =
+                `guardadas · ${formatFecha(ultimo_run.fecha_inicio)}`;
+            document.getElementById('dash-ultima-fecha').textContent =
+                `Última ejecución: ${formatFecha(ultimo_run.fecha_inicio)}`;
+
+            // Alerta si hace más de 24h del último run completado
+            const horas = horasDesde(ultimo_run.fecha_inicio);
+            if (horas > 24) {
+                const alerta = document.getElementById('dash-alerta');
+                document.getElementById('dash-alerta-texto').textContent =
+                    `Han pasado ${Math.floor(horas)} horas desde la última ejecución completada.`;
+                alerta.classList.add('visible');
+            }
+        } else {
+            document.getElementById('dash-ultima-fecha').textContent = 'Sin ejecuciones registradas';
+        }
+
+        // ── Gráfico temas noticias ─────────────────────────────────────
+        const temasEntries = Object.entries(temas_noticias).sort((a,b) => b[1]-a[1]);
+        chartTemas = crearDoughnut('chart-temas',
+            temasEntries.map(e => e[0]),
+            temasEntries.map(e => e[1])
+        );
+
+        // ── Gráfico categorías glosario ────────────────────────────────
+        const catEntries = Object.entries(categorias_glosario).sort((a,b) => b[1]-a[1]);
+        chartGlosario = crearDoughnut('chart-glosario',
+            catEntries.map(e => e[0]),
+            catEntries.map(e => e[1])
+        );
+
+        // ── Gráfico idiomas (barras horizontales) ──────────────────────
+        const idiEntries = Object.entries(idiomas).sort((a,b) => b[1]-a[1]);
+        const ctxIdi = document.getElementById('chart-idiomas').getContext('2d');
+        chartIdiomas = new Chart(ctxIdi, {
+            type: 'bar',
+            data: {
+                labels: idiEntries.map(e => e[0]),
+                datasets: [{
+                    data: idiEntries.map(e => e[1]),
+                    backgroundColor: PALETTE.slice(0, idiEntries.length),
+                    borderRadius: 4,
+                }]
+            },
+            options: {
+                indexAxis: 'y',
+                ...CHART_DEFAULTS,
+                plugins: { ...CHART_DEFAULTS.plugins, legend: { display: false } },
+                scales: {
+                    x: { ticks: { color: '#94a3b8' }, grid: { color: '#1e2535' } },
+                    y: { ticks: { color: '#e2e8f0', font: { family: 'Syne' } }, grid: { display: false } }
+                }
+            }
+        });
+
+        // ── Gráfico historial (línea) ──────────────────────────────────
+        const ctxHist = document.getElementById('chart-historial').getContext('2d');
+        chartHistorial = new Chart(ctxHist, {
+            type: 'line',
+            data: {
+                labels: historial.map(r => formatFecha(r.fecha_inicio)),
+                datasets: [{
+                    label: 'Noticias guardadas',
+                    data: historial.map(r => r.noticias_guardadas),
+                    borderColor: '#3b82f6',
+                    backgroundColor: 'rgba(59,130,246,0.08)',
+                    borderWidth: 2,
+                    pointRadius: 3,
+                    pointBackgroundColor: '#3b82f6',
+                    fill: true,
+                    tension: 0.3,
+                }]
+            },
+            options: {
+                ...CHART_DEFAULTS,
+                plugins: { ...CHART_DEFAULTS.plugins, legend: { display: false } },
+                scales: {
+                    x: { ticks: { color: '#4a5568', font: { size: 10 }, maxTicksLimit: 10 }, grid: { display: false } },
+                    y: { ticks: { color: '#94a3b8' }, grid: { color: '#1e2535' } }
+                }
+            }
+        });
+
+        // ── Selector de runs ───────────────────────────────────────────
+        const runsRes  = await fetch('/api/scraper/runs?limite=60', { credentials: 'include' });
+        const runs     = await runsRes.json();
+        const select   = document.getElementById('run-select');
+        select.innerHTML = '';
+        runs.forEach(r => {
+            const opt = document.createElement('option');
+            opt.value = r.id;
+            opt.textContent = `${formatFecha(r.fecha_inicio)}  ·  ${r.estado}  ·  ${r.noticias_guardadas} guardadas`;
+            if (ultimo_run && r.id === ultimo_run.id) opt.selected = true;
+            select.appendChild(opt);
+        });
+
+        // Cargar detalle del último run por defecto
+        if (ultimo_run) cargarDetalleFuentes(ultimo_run.id, fuentes_ultimo);
+        select.addEventListener('change', () => cargarDetalleFuentesDesdeAPI(select.value));
+
+        // ── Tabla historial ────────────────────────────────────────────
+        const tbody = document.getElementById('tabla-historial-body');
+        if (!runs.length) {
+            tbody.innerHTML = '<tr><td colspan="8" class="dash-empty">Sin ejecuciones registradas</td></tr>';
+        } else {
+            tbody.innerHTML = runs.map(r => `
+                <tr onclick="document.getElementById('run-select').value='${r.id}';cargarDetalleFuentesDesdeAPI('${r.id}')" ${ultimo_run && r.id===ultimo_run.id ? 'class="activo"' : ''}>
+                    <td style="color:var(--text2)">${r.id}</td>
+                    <td>${formatFecha(r.fecha_inicio)}</td>
+                    <td><span class="pill pill-${r.estado}">${r.estado}</span></td>
+                    <td>${r.noticias_guardadas}</td>
+                    <td style="color:var(--text2)">${r.noticias_duplicadas ?? '—'}</td>
+                    <td style="color:${r.noticias_error ? 'var(--rojo)' : 'var(--text3)'}">${r.noticias_error ?? '—'}</td>
+                    <td>${r.terminos_guardados ?? '—'}</td>
+                    <td style="color:var(--text2)">${r.duracion_segundos != null ? r.duracion_segundos+'s' : '—'}</td>
+                </tr>
+            `).join('');
+        }
+
+    } catch (err) {
+        console.error('[Dashboard] Error cargando stats:', err);
+    }
+}
+
+// ── Cargar detalle de fuentes desde la API ────────────────────────────────────
+async function cargarDetalleFuentesDesdeAPI(runId) {
+    if (!runId) return;
+    try {
+        const res  = await fetch(`/api/scraper/runs/${runId}`, { credentials: 'include' });
+        const data = await res.json();
+        if (!data.error) cargarDetalleFuentes(runId, data.fuentes || []);
+    } catch (err) {
+        console.error('[Dashboard] Error cargando run:', err);
+    }
+}
+
+function cargarDetalleFuentes(runId, fuentes) {
+    // Gráfico doughnut de fuentes
+    const labels = fuentes.map(f => f.fuente_nombre);
+    const datos  = fuentes.map(f => f.articulos_guardados);
+
+    if (chartFuentes) {
+        actualizarDoughnut(chartFuentes, labels, datos);
+    } else {
+        chartFuentes = crearDoughnut('chart-fuentes', labels, datos);
+    }
+
+    // Tabla de fuentes
+    const tbody = document.getElementById('tabla-fuentes-body');
+    if (!fuentes.length) {
+        tbody.innerHTML = '<tr><td colspan="5" class="dash-empty">Sin datos de fuentes para este run</td></tr>';
+        return;
+    }
+    tbody.innerHTML = fuentes.map(f => {
+        let estadoBadge;
+        if (!f.respondio) {
+            estadoBadge = `<span class="badge-error">✗ Sin respuesta</span>`;
+        } else if (f.articulos_recibidos === 0) {
+            estadoBadge = `<span class="badge-warn">⚠ Sin artículos</span>`;
+        } else {
+            estadoBadge = `<span class="badge-ok">✓ OK</span>`;
+        }
+        return `
+            <tr>
+                <td><strong>${f.fuente_nombre}</strong></td>
+                <td>${estadoBadge}</td>
+                <td>${f.articulos_recibidos}</td>
+                <td>${f.articulos_guardados}</td>
+                <td style="color:var(--text3);font-size:0.8rem">${f.error_mensaje || '—'}</td>
+            </tr>
+        `;
+    }).join('');
+}
+
+// ── Auth — solo admin ─────────────────────────────────────────────────────────
+async function iniciar() {
+    try {
+        const res = await fetch('/api/auth/me', { credentials: 'include' });
+        if (!res.ok) { window.location.replace('/login'); return; }
+        const usuario = await res.json();
+        if (usuario.rol !== 'admin') { window.location.replace('/inicio'); return; }
+        renderNavUsuario(usuario);
+    } catch {
+        window.location.replace('/login');
+        return;
+    }
+    actualizarEstado();
+    cargarDashboard();
+    setInterval(actualizarEstado, 30_000);
+}
+
+function renderNavUsuario(usuario) {
+    document.getElementById('nav-auth').innerHTML = `
+        <div class="nav-user">
+            <span class="badge-admin">admin</span>
+            <span>${usuario.nombre}</span>
+            <button class="nav-auth-btn" onclick="doLogout()">Salir</button>
+        </div>`;
+}
+
+async function doLogout() {
+    await fetch('/api/auth/logout', { method: 'POST', credentials: 'include' });
+    window.location.href = '/';
+}
+
+// ── Arranque ──────────────────────────────────────────────────────────────────
+iniciar();
+</script>
+</body>
+</html>

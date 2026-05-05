@@ -11,6 +11,11 @@
 
 <header>
   <h1>GEOSFERA</h1>
+  <nav>
+    <a href="/inicio">Inicio</a>
+    <a href="/glosario">Glosario</a>
+    <a href="/fuentes">Fuentes</a>
+  </nav>
 </header>
 
 <main class="login-main">
@@ -33,10 +38,12 @@
       </div>
       <div class="fg">
         <label>Contraseña</label>
-        <input type="password" id="l-pass" required placeholder="••••••••">
+        <div class="pass-wrap">
+          <input type="password" id="l-pass" required placeholder="••••••••">
+          <button type="button" class="pass-toggle" onclick="togglePass('l-pass', this)" aria-label="Mostrar contraseña">👁</button>
+        </div>
       </div>
       <button type="submit" class="btn-submit">Entrar</button>
-
     </form>
 
     <div class="divider"></div>
@@ -67,7 +74,10 @@
       </div>
       <div class="fg">
         <label>Contraseña <span style="font-weight:400;text-transform:none;letter-spacing:0">(mín. 8 caracteres)</span></label>
-        <input type="password" id="r-pass" required minlength="8" placeholder="••••••••">
+        <div class="pass-wrap">
+          <input type="password" id="r-pass" required minlength="8" placeholder="••••••••">
+          <button type="button" class="pass-toggle" onclick="togglePass('r-pass', this)" aria-label="Mostrar contraseña">👁</button>
+        </div>
       </div>
       <button type="submit" class="btn-submit">Crear cuenta</button>
     </form>
@@ -85,11 +95,22 @@
 
   function cambiarTab(tab) {
     const esLogin = tab === 'login'
-    document.getElementById('form-login').style.display = esLogin ? '' : 'none'
-    document.getElementById('form-reg').style.display   = esLogin ? 'none' : ''
+    document.getElementById('form-login').style.display  = esLogin ? '' : 'none'
+    document.getElementById('form-reg').style.display    = esLogin ? 'none' : ''
     document.getElementById('tab-login').className = `tab-btn ${esLogin ? 'activo' : ''}`
     document.getElementById('tab-reg').className   = `tab-btn ${!esLogin ? 'activo' : ''}`
+    // El bloque de prueba y el divider solo se muestran en login
+    document.querySelector('.divider').style.display      = esLogin ? '' : 'none'
+    document.querySelector('.prueba-bloque').style.display = esLogin ? '' : 'none'
     ocultarAlerta()
+  }
+
+  function togglePass(inputId, btn) {
+    const input = document.getElementById(inputId)
+    const oculta = input.type === 'password'
+    input.type = oculta ? 'text' : 'password'
+    btn.textContent = oculta ? 'Ocultar' : 'Mostrar'
+    btn.setAttribute('aria-label', oculta ? 'Ocultar contraseña' : 'Mostrar contraseña')
   }
 
   function mostrarAlerta(msg, tipo) {

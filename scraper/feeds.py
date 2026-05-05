@@ -92,19 +92,48 @@ def extraer_contenido(url):
 def obtener_articulos(db):
     """
     Función principal: obtiene todas las fuentes activas y devuelve
-    todos los artículos de sus feeds RSS combinados.
+    todos los artículos de sus feeds RSS combinados, junto con las
+    estadísticas por fuente para el log del scraper.
+
+    Devuelve: (articulos, fuentes_stats)
+      articulos    — lista de dicts con los artículos
+      fuentes_stats — lista de dicts con {fuente_nombre, respondio,
+                      articulos_recibidos, error_mensaje}
     """
-    fuentes   = obtener_fuentes(db)
-    total     = len(fuentes)
-    articulos = []
+    fuentes       = obtener_fuentes(db)
+    total         = len(fuentes)
+    articulos     = []
+    fuentes_stats = []
 
     print(f'[feeds] {total} fuentes activas encontradas')
 
     for i, fuente in enumerate(fuentes, 1):
         print(f'  [{i}/{total}] Parseando: {fuente["nombre"]}')
-        nuevos = parsear_feed(fuente)
+        nuevos, stat = _parsear_feed_con_stat(fuente)
         articulos.extend(nuevos)
+        fuentes_stats.append(stat)
         print(f'         → {len(nuevos)} artículos')
 
     print(f'[feeds] Total artículos: {len(articulos)}')
-    return articulos
+    return articulos, fuentes_stats
+
+
+def _parsear_feed_con_stat(fuente):
+    """
+    Wrapper sobre parsear_feed que devuelve también el dict de estadísticas
+    para ScraperFuentes. No reemplaza parsear_feed para no romper usos futuros.
+    """
+    stat = {
+        'fuente_nombre':       fuente['nombre'],
+        'respondio':           False,
+        'articulos_recibidos': 0,
+        'error_mensaje':       None,
+    }
+    try:
+        articulos = parsear_feed(fuente)
+        stat['respondio']           = True
+        stat['articulos_recibidos'] = len(articulos)
+    except Exception as e:
+        stat['error_mensaje'] = str(e)[:300]
+        articulos = []
+    return articulos, stat
