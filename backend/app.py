@@ -21,11 +21,13 @@ from routes.auth     import auth_bp
 from routes.noticias import noticias_bp
 from routes.fuentes  import fuentes_bp
 from routes.glosario import glosario_bp
+from routes.scraper  import scraper_bp
 
 app.register_blueprint(auth_bp,     url_prefix='/api/auth')
 app.register_blueprint(noticias_bp, url_prefix='/api/noticias')
 app.register_blueprint(fuentes_bp,  url_prefix='/api/fuentes')
 app.register_blueprint(glosario_bp, url_prefix='/api/glosario')
+app.register_blueprint(scraper_bp,  url_prefix='/api/scraper')
 
 # ─── Páginas HTML ──────────────────────────────────────────────────────────────
 # La home pública es la presentación. El dashboard real (index.html) vive en /inicio
@@ -50,6 +52,10 @@ def glosario_page():
 @app.route('/login')
 def login_page():
     return send_from_directory(PAGES_DIR, 'login.html')
+
+@app.route('/scraper')
+def scraper_dashboard():
+    return send_from_directory(PAGES_DIR, 'scraper.html')
 
 # ─── Estáticos ─────────────────────────────────────────────────────────────────
 @app.route('/css/<path:filename>')

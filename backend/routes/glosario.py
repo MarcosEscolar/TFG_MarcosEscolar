@@ -20,13 +20,40 @@ def get_terminos():
 
         categoria = request.args.get('categoria')
         q         = request.args.get('q')
+        limite    = min(int(request.args.get('limite', 0)), 500)
+        offset    = int(request.args.get('offset', 0))
 
-        query = db.table('Glosario').select('*')
+        # Sin límite explícito → devolver todo (compatibilidad con el cache del glosario
+        # que usa index.html para los tooltips de términos)
+        if limite == 0:
+            query = db.table('Glosario').select('*')
+            if categoria: query = query.eq('categoria', categoria)
+            if q:
+                q_safe = q.replace(',', ' ').replace('(', ' ').replace(')', ' ')
+                query = query.or_(f'nombre.ilike.%{q_safe}%,definicion.ilike.%{q_safe}%')
+            result = query.order('nombre').execute()
+            return jsonify(result.data or [])
+
+        # Con límite → paginación server-side
+        query = db.table('Glosario').select('*', count='exact')
         if categoria: query = query.eq('categoria', categoria)
-        if q:         query = query.ilike('nombre', f'%{q}%')
+        if q:
+            q_safe = q.replace(',', ' ').replace('(', ' ').replace(')', ' ')
+            query = query.or_(f'nombre.ilike.%{q_safe}%,definicion.ilike.%{q_safe}%')
 
-        result = query.order('nombre').execute()
-        return jsonify(result.data or [])
+        result = query.order('nombre').range(offset, offset + limite - 1).execute()
+
+        total         = result.count if getattr(result, 'count', None) is not None else len(result.data or [])
+        total_paginas = (total + limite - 1) // limite if limite > 0 else 1
+        pagina_actual = (offset // limite) + 1 if limite > 0 else 1
+
+        return jsonify({
+            'terminos':      result.data or [],
+            'total':         total,
+            'pagina':        pagina_actual,
+            'por_pagina':    limite,
+            'total_paginas': total_paginas,
+        })
 
     except Exception as e:
         return jsonify({'error': str(e)}), 500
