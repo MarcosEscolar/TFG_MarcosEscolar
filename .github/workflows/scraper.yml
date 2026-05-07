@@ -22,7 +22,7 @@ env:
 jobs:
   scraper:
     runs-on: ubuntu-latest
-    timeout-minutes: 40
+    timeout-minutes: 360
 
     steps:
       - name: Checkout del repositorio

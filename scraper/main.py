@@ -74,7 +74,7 @@ def main():
 
         nuevos = [a for a in articulos if not a.get('_duplicado')]
         duplicados = len(articulos) - len(nuevos)
-        print(f'[INFO] {len(nuevos)} artículos nuevos / {duplicados} duplicados omitidos')
+        print(f'[INFO] {len(nuevos)} artículos a procesar / {duplicados} duplicados omitidos')
 
         if not nuevos:
             print('[INFO] Nada nuevo que guardar. Fin.')

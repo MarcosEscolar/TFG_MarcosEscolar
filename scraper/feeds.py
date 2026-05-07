@@ -91,10 +91,10 @@ def extraer_contenido(url):
     """
     Descarga la página y extrae el cuerpo del artículo con trafilatura.
     Devuelve el texto limpio o '' si el sitio lo bloquea o falla.
-    Timeout de 15s para no bloquear el scraper con fuentes lentas.
+    Timeout de 5s: si no responde en 5s no va a dar mejor contenido esperando más.
     """
     try:
-        resp = requests.get(url, timeout=15, headers={'User-Agent': 'Mozilla/5.0'})
+        resp = requests.get(url, timeout=5, headers={'User-Agent': 'Mozilla/5.0'})
         if not resp.ok:
             return ''
         texto = trafilatura.extract(
