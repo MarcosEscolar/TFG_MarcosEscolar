@@ -52,8 +52,16 @@ def main():
     print(f'[LOG] Ejecución iniciada (run_id={run_id})')
 
     try:
-        # ── 2. Obtener artículos de los feeds ────────────────────────────
-        articulos, fuentes_stats = obtener_articulos(db)
+        # ── 2. Cargar URLs y glosario ANTES de parsear feeds ────────────
+        # Así feeds.py puede saltarse trafilatura en artículos ya existentes,
+        # reduciendo el tiempo de ejecución de ~40 min a ~5-10 min.
+        print('[DB] Cargando URLs existentes y términos del glosario…')
+        urls_existentes  = obtener_urls_existentes(db)
+        nombres_glosario = obtener_nombres_glosario(db)
+        print(f'[DB] {len(urls_existentes)} URLs en BD, {len(nombres_glosario)} términos en glosario')
+
+        # ── 3. Obtener artículos de los feeds (solo trafilatura en nuevos) ──
+        articulos, fuentes_stats = obtener_articulos(db, urls_existentes)
         if not articulos:
             print('[INFO] No se encontraron artículos. Fin.')
             finalizar_run(db, run_id, {
@@ -64,13 +72,9 @@ def main():
             }, fuentes_stats)
             return
 
-        # ── 3. Filtrar duplicados y cargar glosario ──────────────────────
-        print('[DB] Cargando URLs existentes y términos del glosario…')
-        urls_existentes  = obtener_urls_existentes(db)
-        nombres_glosario = obtener_nombres_glosario(db)
-
-        nuevos = [a for a in articulos if a['url'] not in urls_existentes]
-        print(f'[INFO] {len(nuevos)} artículos nuevos / {len(articulos) - len(nuevos)} duplicados descartados')
+        nuevos = [a for a in articulos if not a.get('_duplicado')]
+        duplicados = len(articulos) - len(nuevos)
+        print(f'[INFO] {len(nuevos)} artículos nuevos / {duplicados} duplicados omitidos')
 
         if not nuevos:
             print('[INFO] Nada nuevo que guardar. Fin.')

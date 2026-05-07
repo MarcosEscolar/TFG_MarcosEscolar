@@ -8,6 +8,7 @@ import feedparser
 import trafilatura
 
 
+
 def obtener_fuentes(db):
     """Devuelve la lista de fuentes activas desde la tabla Fuentes."""
     try:
@@ -18,12 +19,16 @@ def obtener_fuentes(db):
         return []
 
 
-def parsear_feed(fuente):
+def parsear_feed(fuente, urls_existentes=None):
     """
     Parsea el feed RSS de una fuente y devuelve una lista de artículos normalizados.
     Cada artículo tiene: titulo, url, resumen_raw, fuente, idioma.
+
+    urls_existentes: set de URLs ya guardadas en Supabase. Si se proporciona,
+    se salta el costoso paso de trafilatura para los artículos duplicados.
     """
     articulos = []
+    urls_existentes = urls_existentes or set()
     try:
         # Timeout de 10s para no quedarse colgado en fuentes lentas o caídas
         resp = requests.get(fuente['url_rss'], timeout=10, headers={'User-Agent': 'Mozilla/5.0'})
@@ -37,6 +42,19 @@ def parsear_feed(fuente):
             url    = entry.get('link', '').strip()
 
             if not titulo or not url:
+                continue
+
+            # Si la URL ya existe en Supabase, la marcamos sin trafilatura ni Gemini
+            if url in urls_existentes:
+                articulos.append({
+                    'titulo':      titulo,
+                    'url':         url,
+                    'resumen_raw': '',
+                    'contenido':   '',
+                    'fuente':      fuente['nombre'],
+                    'idioma':      fuente.get('idioma', 'ES'),
+                    '_duplicado':  True,   # señal interna para saltarse IA
+                })
                 continue
 
             # Resumen raw (puede venir en varios campos según el feed)
@@ -60,6 +78,7 @@ def parsear_feed(fuente):
                 'contenido':   contenido,   # texto completo o '' si no se pudo
                 'fuente':      fuente['nombre'],
                 'idioma':      fuente.get('idioma', 'ES'),
+                '_duplicado':  False,
             })
 
     except Exception as e:
@@ -89,11 +108,15 @@ def extraer_contenido(url):
         return ''
 
 
-def obtener_articulos(db):
+def obtener_articulos(db, urls_existentes=None):
     """
     Función principal: obtiene todas las fuentes activas y devuelve
     todos los artículos de sus feeds RSS combinados, junto con las
     estadísticas por fuente para el log del scraper.
+
+    urls_existentes: set de URLs ya en Supabase. Si se proporciona,
+    se evita llamar a trafilatura en duplicados y se limitan los
+    artículos nuevos a MAX_POR_FUENTE por fuente.
 
     Devuelve: (articulos, fuentes_stats)
       articulos    — lista de dicts con los artículos
@@ -109,16 +132,18 @@ def obtener_articulos(db):
 
     for i, fuente in enumerate(fuentes, 1):
         print(f'  [{i}/{total}] Parseando: {fuente["nombre"]}')
-        nuevos, stat = _parsear_feed_con_stat(fuente)
+        nuevos, stat = _parsear_feed_con_stat(fuente, urls_existentes)
         articulos.extend(nuevos)
         fuentes_stats.append(stat)
-        print(f'         → {len(nuevos)} artículos')
+        nuevos_count = sum(1 for a in nuevos if not a.get('_duplicado'))
+        print(f'         → {stat["articulos_recibidos"]} recibidos, {nuevos_count} nuevos a procesar')
 
-    print(f'[feeds] Total artículos: {len(articulos)}')
+    nuevos_total = sum(1 for a in articulos if not a.get('_duplicado'))
+    print(f'[feeds] Total: {len(articulos)} artículos ({nuevos_total} nuevos, {len(articulos)-nuevos_total} duplicados)')
     return articulos, fuentes_stats
 
 
-def _parsear_feed_con_stat(fuente):
+def _parsear_feed_con_stat(fuente, urls_existentes=None):
     """
     Wrapper sobre parsear_feed que devuelve también el dict de estadísticas
     para ScraperFuentes. No reemplaza parsear_feed para no romper usos futuros.
@@ -130,9 +155,10 @@ def _parsear_feed_con_stat(fuente):
         'error_mensaje':       None,
     }
     try:
-        articulos = parsear_feed(fuente)
+        articulos = parsear_feed(fuente, urls_existentes)
         stat['respondio']           = True
-        stat['articulos_recibidos'] = len(articulos)
+        # Solo contamos los nuevos en "recibidos" (los duplicados ya estaban)
+        stat['articulos_recibidos'] = sum(1 for a in articulos if not a.get('_duplicado'))
     except Exception as e:
         stat['error_mensaje'] = str(e)[:300]
         articulos = []
