@@ -43,11 +43,11 @@
             <a href="#demo" class="pres-btn-ghost">Probar el glosario ↓</a>
         </div>
         <div class="pres-hero-meta">
-            <span><strong>609</strong> noticias indexadas</span>
+            <span><strong id="stat-noticias">…</strong> noticias indexadas</span>
             <span class="pres-meta-sep">·</span>
             <span><strong>8</strong> idiomas</span>
             <span class="pres-meta-sep">·</span>
-            <span><strong>958</strong> términos en glosario</span>
+            <span><strong id="stat-terminos">…</strong> términos en glosario</span>
         </div>
     </div>
     <div class="pres-scroll-cue">Continuar</div>
@@ -221,6 +221,28 @@
             });
         }, { threshold: 0.12 });
         items.forEach(el => io.observe(el));
+    })();
+
+    // ── Estadísticas en tiempo real ──
+    (async function () {
+        try {
+            const [resN, resG] = await Promise.all([
+                fetch('/api/noticias/?limite=1'),
+                fetch('/api/glosario/?limite=1'),
+            ]);
+            if (resN.ok) {
+                const d = await resN.json();
+                if (d.total != null)
+                    document.getElementById('stat-noticias').textContent =
+                        d.total.toLocaleString('es');
+            }
+            if (resG.ok) {
+                const d = await resG.json();
+                if (d.total != null)
+                    document.getElementById('stat-terminos').textContent =
+                        d.total.toLocaleString('es');
+            }
+        } catch {}
     })();
 </script>
 </body>

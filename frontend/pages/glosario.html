@@ -48,7 +48,11 @@
         <div class="fg"><label>Nombre *</label><input type="text" id="t-nombre" required></div>
       </div>
       <div class="fg"><label>Definición *</label><textarea id="t-definicion" required></textarea></div>
-      <div class="fg"><label>Categoría</label><input type="text" id="t-categoria" placeholder="Ej: Geopolítica, Derecho…"></div>
+      <div class="fg"><label>Categoría</label>
+        <select id="t-categoria">
+          <option value="">Sin categoría</option>
+        </select>
+      </div>
       <div class="fg"><label>Relacionados</label><input type="text" id="t-relacionados" placeholder="Separados por coma"></div>
       <div class="modal-footer">
         <button type="button" class="btn-m sec" onclick="cerrarModal('modal')">Cancelar</button>
@@ -60,6 +64,7 @@
 
 <script>
   let usuario = null
+  let listaCategorias = []
 
   // ── Paginación ─────────────────────────────────────────────────────────────
   const POR_PAGINA   = 30
@@ -143,11 +148,15 @@
     try {
       const res  = await fetch('/api/glosario/categorias', { credentials:'include' })
       const cats = await res.json()
-      const sel  = document.getElementById('filtro-categoria')
+      listaCategorias = cats
+      const selFiltro = document.getElementById('filtro-categoria')
+      const selModal  = document.getElementById('t-categoria')
       cats.forEach(c => {
-        const opt = document.createElement('option')
-        opt.value = c; opt.textContent = c
-        sel.appendChild(opt)
+        ;[selFiltro, selModal].forEach(sel => {
+          const opt = document.createElement('option')
+          opt.value = c; opt.textContent = c
+          sel.appendChild(opt)
+        })
       })
     } catch {}
   }
@@ -228,6 +237,14 @@
     document.getElementById('t-nombre').value      = t?.nombre || ''
     document.getElementById('t-definicion').value  = t?.definicion || ''
     document.getElementById('t-categoria').value   = t?.categoria || ''
+    // Si la categoría del término no está en la lista (término antiguo), añadirla temporalmente
+    const selCat = document.getElementById('t-categoria')
+    if (t?.categoria && !selCat.querySelector(`option[value="${t.categoria}"]`)) {
+      const opt = document.createElement('option')
+      opt.value = t.categoria; opt.textContent = t.categoria
+      selCat.appendChild(opt)
+      selCat.value = t.categoria
+    }
     const rel = t?.relacionados
     document.getElementById('t-relacionados').value = Array.isArray(rel) ? rel.join(', ') : (rel || '')
     document.getElementById('modal').classList.add('open')

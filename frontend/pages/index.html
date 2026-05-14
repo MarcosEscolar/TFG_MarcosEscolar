@@ -27,9 +27,16 @@
   </div>
   <div class="barra-filtros">
     <input type="text" id="buscador-noticias" placeholder="Buscar noticia…" oninput="aplicarFiltrosDebounce()">
+    <select id="filtro-tema" onchange="aplicarFiltros()">
+      <option value="">Todos los temas</option>
+    </select>
     <select id="filtro-fuente" onchange="aplicarFiltros()">
       <option value="">Todos los periódicos</option>
     </select>
+  </div>
+  <div class="dash-alerta" id="aviso-inactiva" style="display:none">
+    <span class="dash-alerta-icon">⚠</span>
+    <span id="aviso-inactiva-texto">Este periódico está inactivo y no recibirá nuevas noticias.</span>
   </div>
   <div id="feed">Cargando noticias…</div>
   <div id="paginacion-info" class="paginacion-info"></div>
@@ -47,6 +54,10 @@
     <h2 class="detalle-titulo" id="d-titulo"></h2>
     <div class="detalle-meta" id="d-meta"></div>
     <div class="detalle-contenido" id="d-contenido"></div>
+    <div class="relacionadas-seccion" id="relacionadas-seccion" style="display:none">
+      <h3 class="relacionadas-titulo">Noticias relacionadas</h3>
+      <div class="relacionadas-grid" id="relacionadas-grid"></div>
+    </div>
   </div>
   <div class="detalle-footer">
     <a class="btn-original" id="d-url" href="#" target="_blank">Leer artículo original →</a>
@@ -79,9 +90,14 @@
             <option value="RU">Ruso</option><option value="ZH">Chino</option>
           </select>
         </div>
-        <div class="fg"><label>Tema</label><input type="text" id="n-tema" placeholder="Ej: OTAN, Asia…"></div>
+        <div class="fg"><label>Tema</label>
+          <select id="n-tema">
+            <option value="">Sin tema</option>
+          </select>
+        </div>
       </div>
       <div class="fg"><label>Términos relacionados</label><input type="text" id="n-terminos" placeholder="Separados por coma"></div>
+      <div class="fg"><label>Fecha de publicación</label><input type="datetime-local" id="n-fecha"></div>
       <div class="modal-footer">
         <button type="button" class="btn-m sec" onclick="cerrarModal('modal')">Cancelar</button>
         <button type="submit" class="btn-m pri">Guardar</button>
@@ -93,6 +109,27 @@
 <script>
   let usuario = null
   let terminosGlosario = []  // cache [{nombre, definicion}]
+
+  // Formatea una fecha ISO a "dd/mm/aaaa HH:MM" en español
+  function formatFecha(str) {
+    if (!str) return ''
+    const d = new Date(str)
+    if (isNaN(d)) return str
+    return d.toLocaleString('es-ES', {
+      day: '2-digit', month: '2-digit', year: 'numeric',
+      hour: '2-digit', minute: '2-digit'
+    })
+  }
+
+  // Convierte una fecha ISO a formato datetime-local (YYYY-MM-DDTHH:MM)
+  function isoADatetimeLocal(str) {
+    if (!str) return ''
+    const d = new Date(str)
+    if (isNaN(d)) return ''
+    // Ajustamos al huso local
+    const off = d.getTimezoneOffset() * 60000
+    return new Date(d - off).toISOString().slice(0, 16)
+  }
 
   async function iniciar() {
     try {
@@ -131,6 +168,7 @@
   // Llamado por <select onchange> → cambio inmediato
   function aplicarFiltros() {
     paginaActual = 1
+    comprobarAvisoInactiva()
     cargarNoticias()
   }
 
@@ -191,17 +229,70 @@
     `
   }
 
+  async function cargarTemas() {
+    try {
+      const res   = await fetch('/api/noticias/temas', { credentials:'include' })
+      const temas = await res.json()
+      const selFiltro = document.getElementById('filtro-tema')
+      const selModal  = document.getElementById('n-tema')
+      temas.forEach(t => {
+        ;[selFiltro, selModal].forEach(sel => {
+          const opt = document.createElement('option')
+          opt.value = t; opt.textContent = t
+          sel.appendChild(opt)
+        })
+      })
+    } catch {}
+  }
+
+  let todasFuentes = []   // cache para saber si una fuente está activa
+
   async function renderSelectFuentes() {
     try {
       const res  = await fetch('/api/fuentes/', { credentials:'include' })
       const list = await res.json()
-      const sel  = document.getElementById('filtro-fuente')
-      list.filter(f => f.activa).sort((a,b) => a.nombre.localeCompare(b.nombre)).forEach(f => {
-        const opt = document.createElement('option')
-        opt.value = f.nombre; opt.textContent = f.nombre
-        sel.appendChild(opt)
-      })
+      todasFuentes = list
+      const sel     = document.getElementById('filtro-fuente')
+      const activas = list.filter(f => f.activa).sort((a,b) => a.nombre.localeCompare(b.nombre))
+      const inactivas = list.filter(f => !f.activa).sort((a,b) => a.nombre.localeCompare(b.nombre))
+
+      if (activas.length) {
+        const grpA = document.createElement('optgroup')
+        grpA.label = 'Activas'
+        activas.forEach(f => {
+          const opt = document.createElement('option')
+          opt.value = f.nombre; opt.textContent = f.nombre
+          grpA.appendChild(opt)
+        })
+        sel.appendChild(grpA)
+      }
+
+      if (inactivas.length) {
+        const grpI = document.createElement('optgroup')
+        grpI.label = 'Inactivas'
+        inactivas.forEach(f => {
+          const opt = document.createElement('option')
+          opt.value = f.nombre; opt.textContent = `${f.nombre} `
+          grpI.appendChild(opt)
+        })
+        sel.appendChild(grpI)
+      }
     } catch {}
+  }
+
+  function comprobarAvisoInactiva() {
+    const nombre  = document.getElementById('filtro-fuente').value
+    const aviso   = document.getElementById('aviso-inactiva')
+    if (!nombre) { aviso.style.display = 'none'; return }
+    const fuente  = todasFuentes.find(f => f.nombre === nombre)
+    if (fuente && !fuente.activa) {
+      document.getElementById('aviso-inactiva-texto').textContent =
+        `"${nombre}" está inactiva y no recibirá nuevas noticias.`
+      aviso.style.display = ''
+      aviso.classList.add('visible')
+    } else {
+      aviso.style.display = 'none'
+    }
   }
 
   function renderNoticias(list) {
@@ -216,6 +307,7 @@
         <div class="meta">
           <span class="fuente">${n.fuente || ''}</span>
           <span class="idioma">${n.idioma || ''}</span>
+          ${n.fecha ? `<span class="fecha"> ${formatFecha(n.fecha)}</span>` : ''}
           <button class="btn-admin btn-leer" data-id="${n.id}" style="margin-left:auto">Leer más →</button>
         </div>
         ${n.terminos?.length ? `<div class="terminos">${Array.isArray(n.terminos) ? n.terminos.join(', ') : n.terminos}</div>` : ''}
@@ -247,11 +339,13 @@
 
     // Construir URL con filtros y paginación
     const q      = document.getElementById('buscador-noticias').value.trim()
+    const tema   = document.getElementById('filtro-tema').value
     const fuente = document.getElementById('filtro-fuente').value
     const offset = (paginaActual - 1) * POR_PAGINA
 
     const params = new URLSearchParams({ limite: POR_PAGINA, offset })
     if (q)      params.set('q', q)
+    if (tema)   params.set('tema', tema)
     if (fuente) params.set('fuente', fuente)
 
     try {
@@ -277,9 +371,9 @@
       const esAdmin = usuario?.rol === 'admin'
       if (esAdmin) document.getElementById('btn-add').classList.add('visible')
 
-      // El selector de fuentes solo se rellena la primera vez
+      // Los selectores solo se rellenan la primera vez
       if (!document.getElementById('filtro-fuente').dataset.cargado) {
-        await renderSelectFuentes()
+        await Promise.all([renderSelectFuentes(), cargarTemas()])
         document.getElementById('filtro-fuente').dataset.cargado = '1'
       }
 
@@ -305,9 +399,12 @@
     document.getElementById('n-url').value      = n?.url || ''
     document.getElementById('n-fuente').value   = n?.fuente || ''
     document.getElementById('n-idioma').value   = n?.idioma || 'ES'
-    document.getElementById('n-tema').value     = n?.tema || ''
+    // tema es un array en la BD; mostramos el primero en el select
+    const temaVal = Array.isArray(n?.tema) ? (n.tema[0] || '') : (n?.tema || '')
+    document.getElementById('n-tema').value = temaVal
     const term = n?.terminos
     document.getElementById('n-terminos').value = Array.isArray(term) ? term.join(', ') : (term || '')
+    document.getElementById('n-fecha').value     = isoADatetimeLocal(n?.fecha)
     document.getElementById('modal').classList.add('open')
   }
 
@@ -323,14 +420,16 @@
   async function submitNoticia(e) {
     e.preventDefault()
     const id = document.getElementById('n-id').value
+    const fechaVal = document.getElementById('n-fecha').value
     const body = {
-      titulo:     document.getElementById('n-titulo').value,
-      resumen_es: document.getElementById('n-resumen').value,
-      url:        document.getElementById('n-url').value,
-      fuente:     document.getElementById('n-fuente').value,
-      idioma:     document.getElementById('n-idioma').value,
-      tema:       document.getElementById('n-tema').value,
-      terminos:   document.getElementById('n-terminos').value,
+      titulo:            document.getElementById('n-titulo').value,
+      resumen_es:        document.getElementById('n-resumen').value,
+      url:               document.getElementById('n-url').value,
+      fuente:            document.getElementById('n-fuente').value,
+      idioma:            document.getElementById('n-idioma').value,
+      tema:              document.getElementById('n-tema').value,
+      terminos:          document.getElementById('n-terminos').value,
+      fecha: fechaVal ? new Date(fechaVal).toISOString() : null,
     }
     try {
       const res = await fetch(id ? `/api/noticias/${id}` : '/api/noticias/', {
@@ -392,21 +491,61 @@
       document.getElementById('d-url').href           = data.url    || '#'
 
       document.getElementById('d-meta').innerHTML = [
-        data.fuente  ? `<span>📰 ${data.fuente}</span>`  : '',
-        data.idioma  ? `<span>🌐 ${data.idioma}</span>`  : '',
+        data.fuente ? `<span>📰 ${data.fuente}</span>` : '',
+        data.idioma ? `<span>🌐 ${data.idioma}</span>` : '',
+        data.fecha  ? `<span>🕐 ${formatFecha(data.fecha)}</span>` : '',
       ].filter(Boolean).join('')
 
       const texto = data.contenido || data.resumen_es || 'Sin contenido disponible.'
       document.getElementById('d-contenido').innerHTML = enlazarTerminos(texto)
 
+      // Resetear relacionadas antes de abrir
+      document.getElementById('relacionadas-seccion').style.display = 'none'
+      document.getElementById('relacionadas-grid').innerHTML = ''
+
       document.getElementById('detalle-overlay').classList.add('open')
       document.getElementById('detalle-panel').classList.add('open')
+      document.getElementById('detalle-panel').scrollTop = 0
       document.body.style.overflow = 'hidden'
 
       activarTooltips()
+
+      // Cargar relacionadas sin bloquear la apertura del panel
+      cargarRelacionadas(id)
     } catch (err) {
       console.error('Error abriendo detalle:', err)
     }
+  }
+
+  async function cargarRelacionadas(id) {
+    try {
+      const res  = await fetch(`/api/noticias/${id}/relacionadas`, { credentials:'include' })
+      if (!res.ok) return
+      const lista = await res.json()
+      if (!lista.length) return
+
+      const grid = document.getElementById('relacionadas-grid')
+      grid.innerHTML = lista.map(n => {
+        const temaLabel = Array.isArray(n.tema) ? n.tema[0] : (n.tema || '')
+        const resumen   = (n.resumen_es || '').slice(0, 120) + ((n.resumen_es || '').length > 120 ? '…' : '')
+        return `
+          <div class="rel-tarjeta" data-id="${n.id}">
+            ${temaLabel ? `<div class="tema" style="font-size:.68rem;margin-bottom:.3rem">${escapeHtml(temaLabel)}</div>` : ''}
+            <p class="rel-titulo">${escapeHtml(n.titulo || '')}</p>
+            <p class="rel-resumen">${escapeHtml(resumen)}</p>
+            <div class="rel-meta">
+              <span>${escapeHtml(n.fuente || '')}</span>
+              ${n.fecha ? `<span>${formatFecha(n.fecha)}</span>` : ''}
+            </div>
+          </div>`
+      }).join('')
+
+      grid.querySelectorAll('.rel-tarjeta').forEach(t =>
+        t.addEventListener('click', () => abrirDetalle(t.dataset.id))
+      )
+
+      document.getElementById('relacionadas-seccion').style.display = ''
+    } catch {}
   }
 
   function cerrarDetalle() {
@@ -420,22 +559,22 @@
   function enlazarTerminos(texto) {
     if (!terminosGlosario.length) return escapeHtml(texto)
 
-    // Ordenar de más largo a más corto para evitar reemplazos parciales
+    // Ordenar de más largo a más corto para que en la alternancia el más específico gane
     const terminos = [...terminosGlosario].sort((a, b) => b.nombre.length - a.nombre.length)
 
-    // Escapar HTML del texto base
-    let resultado = escapeHtml(texto)
+    // Mapa para lookup rápido por nombre en minúsculas
+    const mapa = {}
+    terminos.forEach(t => { mapa[t.nombre.toLowerCase()] = t })
 
-    terminos.forEach(t => {
-      const patron = new RegExp(`(?<![\\w<"])${escapeRegex(t.nombre)}(?![\\w>"])`, 'gi')
-      const defEsc = escapeAttr(t.definicion || '')
-      const nomEsc = escapeAttr(t.nombre)
-      resultado = resultado.replace(patron, match =>
-        `<span class="term-link" data-nombre="${nomEsc}" data-def="${defEsc}">${match}</span>`
-      )
+    // Regex combinado: un único pase sobre el texto escapado, sin re-procesar spans ya creados
+    const alternancia = terminos.map(t => escapeRegex(t.nombre)).join('|')
+    const patron = new RegExp(`(?<![\\w<"])(${alternancia})(?![\\w>"])`, 'gi')
+
+    return escapeHtml(texto).replace(patron, match => {
+      const t = mapa[match.toLowerCase()]
+      if (!t) return match
+      return `<span class="term-link" data-nombre="${escapeAttr(t.nombre)}" data-def="${escapeAttr(t.definicion || '')}">${match}</span>`
     })
-
-    return resultado
   }
 
   function escapeHtml(str) {

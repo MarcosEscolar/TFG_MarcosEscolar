@@ -69,14 +69,15 @@ def guardar_noticia(db, noticia):
         # prohíbe HTML al modelo, esto es el último filtro que garantiza que
         # nunca entren tags ni residuos a la base de datos.
         nueva = {
-            'titulo':      limpiar_texto(noticia['titulo_es']),
-            'resumen_es':  limpiar_texto(noticia['resumen_es']),
-            'contenido':   limpiar_texto(noticia.get('analisis_es', '')),
-            'url':         noticia['url'],
-            'fuente':      noticia['fuente'],
-            'idioma':      noticia['idioma'],
-            'tema':        [limpiar_texto(t) for t in noticia.get('tema', []) if t],
-            'terminos':    [],
+            'titulo':            limpiar_texto(noticia['titulo_es']),
+            'resumen_es':        limpiar_texto(noticia['resumen_es']),
+            'contenido':         limpiar_texto(noticia.get('analisis_es', '')),
+            'url':               noticia['url'],
+            'fuente':            noticia['fuente'],
+            'idioma':            noticia['idioma'],
+            'tema':              [limpiar_texto(t) for t in noticia.get('tema', []) if t],
+            'terminos':          [],
+            'fecha': noticia.get('fecha'),
         }
         result = db.table('Noticias').insert(nueva).execute()
         return bool(result.data)

@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>GEOSFERA — Dashboard Scraper</title>
-    <link rel="icon" type="image/png" href="/imagenes/Geosfera_icon.png">
+    <link rel="icon" type="image/png" href="/imagenes/MundoIcono.png">
     <link rel="stylesheet" href="/css/estilos.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 </head>
@@ -42,8 +42,9 @@
         <span id="dash-alerta-texto">Han pasado más de 24 h sin una ejecución completada del scraper.</span>
     </div>
 
-    <!-- KPIs -->
-    <div class="dash-kpis" id="dash-kpis">
+    <!-- KPIs: datos globales -->
+    <p class="dash-section-title">Datos globales</p>
+    <div class="dash-kpis">
         <div class="kpi-card accent">
             <div class="kpi-label">Noticias en BD</div>
             <div class="kpi-value" id="kpi-noticias">—</div>
@@ -54,25 +55,30 @@
             <div class="kpi-value" id="kpi-glosario">—</div>
             <div class="kpi-sub">total en BD</div>
         </div>
-        <div class="kpi-card verde">
-            <div class="kpi-label">Último scrapeo</div>
-            <div class="kpi-value" id="kpi-ultimo-guardadas">—</div>
-            <div class="kpi-sub" id="kpi-ultimo-sub">noticias guardadas</div>
-        </div>
-        <div class="kpi-card">
-            <div class="kpi-label">Términos añadidos</div>
-            <div class="kpi-value" id="kpi-ultimo-terminos">—</div>
-            <div class="kpi-sub">en el último run</div>
-        </div>
-        <div class="kpi-card naranja">
-            <div class="kpi-label">Duración</div>
-            <div class="kpi-value" id="kpi-duracion">—</div>
-            <div class="kpi-sub">último run (segundos)</div>
-        </div>
         <div class="kpi-card">
             <div class="kpi-label">Ejecuciones totales</div>
             <div class="kpi-value" id="kpi-runs">—</div>
             <div class="kpi-sub">en historial</div>
+        </div>
+    </div>
+
+    <!-- KPIs: último scrapeo -->
+    <p class="dash-section-title">Datos último scrapeo</p>
+    <div class="dash-kpis">
+        <div class="kpi-card verde">
+            <div class="kpi-label">Noticias guardadas</div>
+            <div class="kpi-value" id="kpi-ultimo-guardadas">—</div>
+            <div class="kpi-sub" id="kpi-ultimo-sub">último scrapeo</div>
+        </div>
+        <div class="kpi-card">
+            <div class="kpi-label">Términos añadidos</div>
+            <div class="kpi-value" id="kpi-ultimo-terminos">—</div>
+            <div class="kpi-sub">en el último scrapeo</div>
+        </div>
+        <div class="kpi-card naranja">
+            <div class="kpi-label">Duración</div>
+            <div class="kpi-value" id="kpi-duracion">—</div>
+            <div class="kpi-sub">último scrapeo</div>
         </div>
     </div>
 
@@ -138,8 +144,8 @@
                     <th>Fecha</th>
                     <th>Estado</th>
                     <th>Guardadas</th>
-                    <th>Duplicadas</th>
-                    <th>Errores</th>
+                    <th title="Artículos ya existentes en la BD, ignorados sin error">Duplicadas</th>
+                    <th title="Artículos que fallaron al guardarse o al procesar">Errores reales</th>
                     <th>Términos</th>
                     <th>Duración</th>
                 </tr>
@@ -268,7 +274,8 @@ async function cargarDashboard() {
             document.getElementById('kpi-ultimo-guardadas').textContent = ultimo_run.noticias_guardadas;
             document.getElementById('kpi-ultimo-terminos').textContent  = ultimo_run.terminos_guardados;
             document.getElementById('kpi-duracion').textContent         =
-                ultimo_run.duracion_segundos != null ? `${ultimo_run.duracion_segundos}s` : '—';
+                ultimo_run.duracion_segundos != null
+                    ? `${(ultimo_run.duracion_segundos / 60).toFixed(1)} min` : '—';
             document.getElementById('kpi-ultimo-sub').textContent =
                 `guardadas · ${formatFecha(ultimo_run.fecha_inicio)}`;
             document.getElementById('dash-ultima-fecha').textContent =
@@ -374,18 +381,27 @@ async function cargarDashboard() {
         if (!runs.length) {
             tbody.innerHTML = '<tr><td colspan="8" class="dash-empty">Sin ejecuciones registradas</td></tr>';
         } else {
-            tbody.innerHTML = runs.map(r => `
+            tbody.innerHTML = runs.map(r => {
+                const dups   = r.noticias_duplicadas ?? 0
+                const errors = r.noticias_error ?? 0
+                const dupCell = dups > 0
+                    ? `<span class="pill-dup">${dups}</span>`
+                    : `<span style="color:var(--text3)">0</span>`
+                const errCell = errors > 0
+                    ? `<span class="pill-err">${errors}</span>`
+                    : `<span style="color:var(--text3)">0</span>`
+                return `
                 <tr onclick="document.getElementById('run-select').value='${r.id}';cargarDetalleFuentesDesdeAPI('${r.id}')" ${ultimo_run && r.id===ultimo_run.id ? 'class="activo"' : ''}>
                     <td style="color:var(--text2)">${r.id}</td>
                     <td>${formatFecha(r.fecha_inicio)}</td>
                     <td><span class="pill pill-${r.estado}">${r.estado}</span></td>
                     <td>${r.noticias_guardadas}</td>
-                    <td style="color:var(--text2)">${r.noticias_duplicadas ?? '—'}</td>
-                    <td style="color:${r.noticias_error ? 'var(--rojo)' : 'var(--text3)'}">${r.noticias_error ?? '—'}</td>
+                    <td>${dupCell}</td>
+                    <td>${errCell}</td>
                     <td>${r.terminos_guardados ?? '—'}</td>
-                    <td style="color:var(--text2)">${r.duracion_segundos != null ? r.duracion_segundos+'s' : '—'}</td>
-                </tr>
-            `).join('');
+                    <td style="color:var(--text2)">${r.duracion_segundos != null ? (r.duracion_segundos/60).toFixed(1)+' min' : '—'}</td>
+                </tr>`
+            }).join('');
         }
 
     } catch (err) {

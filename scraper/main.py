@@ -110,6 +110,9 @@ def main():
         # ── 5. Guardar en Supabase ────────────────────────────────────────
         print('[DB] Guardando en Supabase…')
         stats = guardar_resultados(db, enriquecidos, urls_existentes, nombres_glosario)
+        # Sumar los duplicados filtrados antes del enriquecimiento (los que ya
+        # estaban en la BD por URL y nunca llegaron a guardar_resultados)
+        stats['noticias_duplicadas'] += duplicados
 
         # ── 6. Combinar stats de fuentes (recibidos + guardados) ──────────
         guardadas_por_fuente = stats.pop('guardadas_por_fuente', {})

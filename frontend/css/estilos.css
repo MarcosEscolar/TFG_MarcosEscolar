@@ -681,6 +681,16 @@ main > p.subtitulo {
 .tarjeta { cursor:pointer; }
 .tarjeta:hover { border-color:var(--accent2) !important; }
 
+/* Noticias relacionadas */
+.relacionadas-seccion { margin-top:2rem; padding-top:1.5rem; border-top:1px solid var(--border); }
+.relacionadas-titulo { font-family:'Syne',sans-serif; font-size:.72rem; font-weight:700; letter-spacing:.1em; text-transform:uppercase; color:var(--text2); margin-bottom:.9rem; }
+.relacionadas-grid { display:flex; flex-direction:column; gap:.55rem; }
+.rel-tarjeta { background:var(--bg3); border:1px solid var(--border); border-radius:var(--radius-sm); padding:.8rem 1rem; cursor:pointer; transition:border-color .15s, background .15s; }
+.rel-tarjeta:hover { border-color:var(--accent2); background:var(--bg2); }
+.rel-titulo { font-family:'Syne',sans-serif; font-size:.88rem; font-weight:700; line-height:1.35; margin:0 0 .3rem; color:var(--text); }
+.rel-resumen { font-family:'Source Serif 4',serif; font-size:.8rem; line-height:1.5; color:var(--text2); margin:0 0 .45rem; }
+.rel-meta { display:flex; gap:.75rem; font-family:'Syne',sans-serif; font-size:.68rem; color:var(--text2); }
+
 /* Tooltip de términos */
 .term-tooltip { position:fixed; z-index:600; max-width:280px; background:var(--bg2); border:1px solid var(--border2); border-radius:10px; padding:.85rem 1rem; box-shadow:0 8px 24px rgba(0,0,0,.4); pointer-events:none; display:none; }
 .term-tooltip.visible { display:block; }
@@ -1844,6 +1854,8 @@ main.dash-wrap {
 .pill-completado { background: rgba(16,185,129,0.12);  color: var(--verde); }
 .pill-error      { background: rgba(239,68,68,0.12);   color: var(--rojo); }
 .pill-en_curso   { background: rgba(245,158,11,0.12);  color: var(--naranja); }
+.pill-dup { display:inline-block; padding:.1rem .45rem; border-radius:99px; font-size:.75rem; font-family:'Syne',sans-serif; font-weight:700; background:rgba(245,158,11,0.12); color:var(--naranja); }
+.pill-err { display:inline-block; padding:.1rem .45rem; border-radius:99px; font-size:.75rem; font-family:'Syne',sans-serif; font-weight:700; background:rgba(239,68,68,0.12);  color:var(--rojo); }
 
 /* ── Estado vacío / cargando ── */
 .dash-empty {

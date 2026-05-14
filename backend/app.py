@@ -4,7 +4,16 @@ from config import Config
 import os
 
 app = Flask(__name__)
+
+if not Config.SECRET_KEY:
+    raise RuntimeError('SECRET_KEY no definida. Añádela al .env o a las variables de Render.')
+
 app.config['SECRET_KEY'] = Config.SECRET_KEY
+app.config.update(
+    SESSION_COOKIE_HTTPONLY = True,
+    SESSION_COOKIE_SAMESITE = 'Lax',
+    SESSION_COOKIE_SECURE   = not Config.DEBUG,  # True en producción (HTTPS), False en local
+)
 
 CORS(app, origins=['http://localhost:5000', 'http://127.0.0.1:5000',
                     'http://localhost:5500', 'http://127.0.0.1:5500'],

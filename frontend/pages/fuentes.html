@@ -41,6 +41,11 @@
     <select id="filtro-region" onchange="aplicarFiltros()">
       <option value="">Todas las regiones</option>
     </select>
+    <select id="filtro-activa" onchange="aplicarFiltros()">
+      <option value="">Todas</option>
+      <option value="true">Activas</option>
+      <option value="false">Inactivas</option>
+    </select>
   </div>
   <div id="lista-fuentes">Cargando fuentes…</div>
 </main>
@@ -87,11 +92,13 @@
     const q      = document.getElementById('buscador-fuentes').value.toLowerCase().trim()
     const idioma = document.getElementById('filtro-idioma').value
     const region = document.getElementById('filtro-region').value
+    const activa = document.getElementById('filtro-activa').value
     const filtradas = todasFuentes.filter(f => {
       const coincideTexto  = !q      || (f.nombre || '').toLowerCase().includes(q)
       const coincideIdioma = !idioma || f.idioma === idioma
       const coincideRegion = !region || f.region === region
-      return coincideTexto && coincideIdioma && coincideRegion
+      const coincideActiva = !activa || String(f.activa) === activa
+      return coincideTexto && coincideIdioma && coincideRegion && coincideActiva
     })
     renderFuentes(filtradas)
   }
