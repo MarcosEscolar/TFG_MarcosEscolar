@@ -1,6 +1,9 @@
+import re
 from flask import Blueprint, request, jsonify, session
 from database import get_db
 from auth import hash_password, check_password, require_login, require_admin
+
+_EMAIL_RE = re.compile(r'^[^@\s]+@[^@\s]+\.[^@\s]+$')
 
 auth_bp = Blueprint('auth', __name__)
 
@@ -17,6 +20,9 @@ def register():
         email    = data['email'].lower().strip()
         password = data['password']
         nombre   = data['nombre'].strip()
+
+        if not _EMAIL_RE.match(email):
+            return jsonify({'error': 'El formato del email no es válido.'}), 400
 
         if len(password) < 8:
             return jsonify({'error': 'La contraseña debe tener al menos 8 caracteres.'}), 400

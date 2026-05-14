@@ -6,29 +6,35 @@ GET /api/scraper/runs          → lista de las últimas N ejecuciones
 GET /api/scraper/runs/<run_id> → detalle completo de una ejecución (con fuentes)
 GET /api/scraper/stats         → estadísticas globales para el dashboard
 """
-import json
-import os
 from flask import Blueprint, jsonify, request
 from database import get_db
 
 scraper_bp = Blueprint('scraper', __name__)
-
-# Ruta al estado.json del scraper (relativa a este fichero)
-_ESTADO_PATH = os.path.join(
-    os.path.dirname(__file__), '..', '..', 'scraper', 'estado.json'
-)
 
 
 # ── Estado en tiempo real ────────────────────────────────────────────────────
 
 @scraper_bp.route('/estado', methods=['GET'])
 def get_estado():
-    """Devuelve si el scraper está corriendo ahora mismo."""
+    """
+    Devuelve si el scraper está corriendo ahora mismo.
+    Fuente de verdad: tabla ScraperRuns — si hay algún run con estado='en_curso'
+    el scraper está activo. Así funciona tanto en local como en producción (Render),
+    independientemente de dónde se ejecute el scraper (GitHub Actions, local…).
+    """
     try:
-        if os.path.exists(_ESTADO_PATH):
-            with open(_ESTADO_PATH, encoding='utf-8') as f:
-                datos = json.load(f)
-            return jsonify({'corriendo': True, **datos})
+        db = get_db()
+        result = (
+            db.table('ScraperRuns')
+            .select('id, fecha_inicio')
+            .eq('estado', 'en_curso')
+            .order('fecha_inicio', desc=True)
+            .limit(1)
+            .execute()
+        )
+        if result.data:
+            run = result.data[0]
+            return jsonify({'corriendo': True, 'inicio': run['fecha_inicio'], 'run_id': run['id']})
         return jsonify({'corriendo': False})
     except Exception as e:
         return jsonify({'corriendo': False, 'error': str(e)})

@@ -3,9 +3,11 @@ feeds.py — Lee las fuentes activas de Supabase y parsea sus feeds RSS.
 Intenta extraer el artículo completo con trafilatura; si falla usa el resumen del RSS.
 """
 import re
+import calendar
 import requests
 import feedparser
 import trafilatura
+from datetime import datetime, timezone
 
 
 
@@ -44,16 +46,28 @@ def parsear_feed(fuente, urls_existentes=None):
             if not titulo or not url:
                 continue
 
+            # Fecha de publicación del XML (<pubDate> / <dc:date> / <updated>)
+            tp = entry.get('published_parsed') or entry.get('updated_parsed')
+            fecha = None
+            if tp:
+                try:
+                    fecha = datetime.fromtimestamp(
+                        calendar.timegm(tp), tz=timezone.utc
+                    ).isoformat()
+                except Exception:
+                    fecha = None
+
             # Si la URL ya existe en Supabase, la marcamos sin trafilatura ni Gemini
             if url in urls_existentes:
                 articulos.append({
-                    'titulo':      titulo,
-                    'url':         url,
-                    'resumen_raw': '',
-                    'contenido':   '',
-                    'fuente':      fuente['nombre'],
-                    'idioma':      fuente.get('idioma', 'ES'),
-                    '_duplicado':  True,   # señal interna para saltarse IA
+                    'titulo':             titulo,
+                    'url':                url,
+                    'resumen_raw':        '',
+                    'contenido':          '',
+                    'fuente':             fuente['nombre'],
+                    'idioma':             fuente.get('idioma', 'ES'),
+                    'fecha':  fecha,
+                    '_duplicado':         True,   # señal interna para saltarse IA
                 })
                 continue
 
@@ -72,13 +86,14 @@ def parsear_feed(fuente, urls_existentes=None):
             contenido = extraer_contenido(url)
 
             articulos.append({
-                'titulo':      titulo,
-                'url':         url,
-                'resumen_raw': resumen_raw,
-                'contenido':   contenido,   # texto completo o '' si no se pudo
-                'fuente':      fuente['nombre'],
-                'idioma':      fuente.get('idioma', 'ES'),
-                '_duplicado':  False,
+                'titulo':            titulo,
+                'url':               url,
+                'resumen_raw':       resumen_raw,
+                'contenido':         contenido,   # texto completo o '' si no se pudo
+                'fuente':            fuente['nombre'],
+                'idioma':            fuente.get('idioma', 'ES'),
+                'fecha': fecha,
+                '_duplicado':        False,
             })
 
     except Exception as e:
