@@ -160,9 +160,7 @@
     </div>
 </section>
 
-<!-- ════════════════════════════════════════════════════
-     FOOTER
-     ════════════════════════════════════════════════════ -->
+<!-- ═════FOOTER══════-->
 <footer class="pres-footer">
     <div class="pres-footer-brand">
         <img src="/imagenes/Geosfera.png" alt="Logo de GEOSFERA" class="pres-nav-mark">
@@ -177,7 +175,7 @@
 </footer>
 
 <script>
-    // ── Animación reveal al hacer scroll ──
+    // Animación reveal al hacer scroll 
     (function () {
         const items = document.querySelectorAll('.reveal');
         const io = new IntersectionObserver(entries => {
@@ -191,7 +189,7 @@
         items.forEach(el => io.observe(el));
     })();
 
-    // ── Estadísticas en tiempo real ──
+    // Estadísticas en tiempo real
     (async function () {
         try {
             const [resN, resG] = await Promise.all([

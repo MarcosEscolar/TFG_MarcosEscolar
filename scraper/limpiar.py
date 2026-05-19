@@ -9,10 +9,10 @@ Por defecto se ejecuta en modo dry-run: muestra los cambios sin tocar nada.
 Para aplicar los cambios pásale el flag --aplicar.
 
 Uso:
-  python limpiar.py             # Dry-run, sólo informa
-  python limpiar.py --aplicar   # Aplica los cambios en Supabase
-  python limpiar.py --solo noticias --aplicar   # Limita a una tabla
-  python limpiar.py --solo glosario
+    python limpiar.py             # Dry-run, sólo informa
+    python limpiar.py --aplicar   # Aplica los cambios en Supabase
+    python limpiar.py --solo noticias --aplicar   # Limita a una tabla
+    python limpiar.py --solo glosario
 """
 import argparse
 import os

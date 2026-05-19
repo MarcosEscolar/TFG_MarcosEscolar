@@ -164,7 +164,7 @@ def update_rol(user_id):
     return jsonify({'mensaje': 'Rol actualizado.', 'usuario': resultado.data[0]})
 
 
-# ─── Eliminar usuario (solo admin) ────────────────────────────────────────────
+# Eliminar usuario (solo admin) 
 @auth_bp.route('/usuarios/<int:user_id>', methods=['DELETE'])
 @require_admin
 def delete_usuario(user_id):

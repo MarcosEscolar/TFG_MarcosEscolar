@@ -36,6 +36,10 @@ Petición HTTP
 
 **`routes/fuentes.py`** — CRUD completo de la tabla `Fuentes`: listar fuentes RSS activas e inactivas, crear, editar y eliminar.
 
+**`routes/favoritos.py`** — Gestión de noticias guardadas del usuario: listar IDs, listar objetos completos, guardar y eliminar. Todos los endpoints usan `@require_login`.
+
+**`routes/scraper.py`** — Endpoints de solo lectura para el dashboard: estado en tiempo real del scraper, historial de ejecuciones y estadísticas globales. Todos usan `@require_admin`.
+
 ---
 
 ## Flujo del scraper
@@ -74,6 +78,26 @@ GitHub Actions (cada dia)
 ## Noticias relacionadas
 
 Al abrir el panel de detalle de una noticia, el frontend solicita en paralelo el endpoint `GET /api/noticias/<id>/relacionadas`. El backend recupera los temas y términos de la noticia actual y lanza dos consultas a Supabase: una filtrando por solapamiento de `tema` y otra por solapamiento de `terminos`, ambas limitadas a 30 resultados. Los candidatos se fusionan en Python eliminando duplicados y se puntúan según el número de coincidencias compartidas, dando más peso a los temas (`temas × 2 + términos × 1`). Se devuelven las 4 noticias con mayor puntuación, que el frontend muestra como tarjetas clicables al pie del artículo. Al pulsar una tarjeta relacionada se abre esa noticia en el mismo panel, permitiendo navegar entre artículos afines sin volver al listado principal.
+
+---
+
+## Sistema de favoritos
+
+Cualquier usuario autenticado puede marcar noticias con el icono de marcador de cada tarjeta y consultarlas después en `/guardados`. El icono alterna entre contorno vacío y relleno sólido según el estado. `guardados.html` carga primero el glosario y luego los favoritos; al quitar uno, la tarjeta desaparece con animación y el contador se actualiza en tiempo real. En `index.html` glosario y favoritos se cargan en paralelo con `Promise.all` para evitar la race condition que impedía que los tooltips funcionasen al abrir el detalle inmediatamente tras cargar la página.
+
+---
+
+## Dashboard de monitorización
+
+El dashboard (`scraper.html`) está reservado exclusivamente para administradores: si el rol del usuario en sesión no es `admin`, el frontend redirige a `/inicio`. Toda la información se carga con una única petición a `GET /api/scraper/stats`, que devuelve en un solo JSON los totales globales, las distribuciones temáticas, el historial de los últimos 30 runs y el detalle de fuentes del último run completado.
+
+Las cuatro visualizaciones de Chart.js 4 son:
+- **Donut de temas** — distribución de los 14 temas geopolíticos en toda la base de datos.
+- **Donut de categorías del glosario** — peso relativo de cada categoría de términos.
+- **Barras horizontales** — número de noticias por idioma original.
+- **Línea temporal** — noticias guardadas por ejecución en los últimos 30 runs.
+
+El estado en tiempo real se obtiene de `GET /api/scraper/estado`, que consulta si existe algún run con `estado = 'en_curso'` en la tabla `ScraperRuns`. El dashboard sondea este endpoint cada 30 segundos y muestra un punto verde pulsante cuando el scraper está activo. Un selector desplegable permite cambiar el run mostrado en la tabla de fuentes y en el donut de aportación por fuente sin recargar el resto de la página.
 
 ---
 

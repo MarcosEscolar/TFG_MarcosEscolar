@@ -54,17 +54,17 @@ TÉRMINOS YA EN EL GLOSARIO (no los repitas): {existentes_str}
 
 Responde con este JSON exacto:
 {{
-  "titulo_es": "título traducido al español (si ya está en español, cópialo igual)",
-  "resumen_es": "resumen en español de 2-3 frases, para la tarjeta de la noticia",
-  "analisis_es": "{instruccion_analisis}",
-  "tema": ["tema_principal"] o ["tema_principal", "tema_secundario"] — array con 1 o 2 valores de esta lista exacta: Oriente Medio, Europa, Rusia-Ucrania, Estados Unidos, China, Asia-Pacífico, América Latina, África, Diplomacia, Seguridad, Economía Global, Energía, Derechos Humanos, Tecnología, Medio Ambiente, Política,
-  "terminos_nuevos": [
+    "titulo_es": "título traducido al español (si ya está en español, cópialo igual)",
+    "resumen_es": "resumen en español de 2-3 frases, para la tarjeta de la noticia",
+    "analisis_es": "{instruccion_analisis}",
+    "tema": ["tema_principal"] o ["tema_principal", "tema_secundario"] — array con 1 o 2 valores de esta lista exacta: Oriente Medio, Europa, Rusia-Ucrania, Estados Unidos, China, Asia-Pacífico, América Latina, África, Diplomacia, Seguridad, Economía Global, Energía, Derechos Humanos, Tecnología, Medio Ambiente, Política,
+    "terminos_nuevos": [
     {{
-      "nombre": "Nombre del término",
-      "definicion": "Definición clara en español de 1-2 frases",
-      "categoria": "una de estas categorías exactas: Geopolítica, Seguridad, Economía, Derecho Internacional, Diplomacia, Organizaciones Internacionales, Política, Tecnología, Medio Ambiente, Cultura y Sociedad"
+        "nombre": "Nombre del término",
+        "definicion": "Definición clara en español de 1-2 frases",
+        "categoria": "una de estas categorías exactas: Geopolítica, Seguridad, Economía, Derecho Internacional, Diplomacia, Organizaciones Internacionales, Política, Tecnología, Medio Ambiente, Cultura y Sociedad"
     }}
-  ]
+    ]
 }}
 
 REGLAS:

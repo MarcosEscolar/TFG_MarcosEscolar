@@ -159,7 +159,7 @@
 </main>
 
 <script>
-// ── Paleta de colores para Chart.js (coherente con el tema oscuro) ──────────
+// Paleta de colores para Chart.js 
 const PALETTE = [
     '#3b82f6','#10b981','#f59e0b','#ef4444','#8b5cf6',
     '#06b6d4','#f97316','#ec4899','#84cc16','#14b8a6',
@@ -182,7 +182,7 @@ const CHART_DEFAULTS = {
     }
 };
 
-// ── Instancias de Chart.js ───────────────────────────────────────────────────
+// Instancias de Chart.js 
 let chartTemas, chartGlosario, chartIdiomas, chartHistorial, chartFuentes;
 
 function crearDoughnut(canvasId, labels, data) {
@@ -216,7 +216,7 @@ function actualizarDoughnut(chart, labels, data) {
     chart.update();
 }
 
-// ── Utilidades ───────────────────────────────────────────────────────────────
+//  Utilidades 
 function formatFecha(isoStr) {
     if (!isoStr) return '—';
     const d = new Date(isoStr);
@@ -231,7 +231,7 @@ function horasDesde(isoStr) {
     return (Date.now() - new Date(isoStr).getTime()) / 3_600_000;
 }
 
-// ── Estado del scraper ────────────────────────────────────────────────────────
+//  Estado del scraper 
 async function actualizarEstado() {
     try {
         const res  = await fetch('/api/scraper/estado', { credentials: 'include' });
@@ -251,7 +251,7 @@ async function actualizarEstado() {
     }
 }
 
-// ── Carga principal ───────────────────────────────────────────────────────────
+//  Carga principal 
 async function cargarDashboard() {
     try {
         const res  = await fetch('/api/scraper/stats', { credentials: 'include' });
@@ -265,7 +265,7 @@ async function cargarDashboard() {
         const { ultimo_run, fuentes_ultimo, historial, temas_noticias,
                 categorias_glosario, idiomas, totales } = data;
 
-        // ── KPIs ──────────────────────────────────────────────────────
+        // ── KPIs ──
         document.getElementById('kpi-noticias').textContent  = totales.noticias.toLocaleString('es');
         document.getElementById('kpi-glosario').textContent  = totales.glosario.toLocaleString('es');
         document.getElementById('kpi-runs').textContent      = totales.runs;
@@ -293,21 +293,21 @@ async function cargarDashboard() {
             document.getElementById('dash-ultima-fecha').textContent = 'Sin ejecuciones registradas';
         }
 
-        // ── Gráfico temas noticias ─────────────────────────────────────
+        // ── Gráfico temas noticias 
         const temasEntries = Object.entries(temas_noticias).sort((a,b) => b[1]-a[1]);
         chartTemas = crearDoughnut('chart-temas',
             temasEntries.map(e => e[0]),
             temasEntries.map(e => e[1])
         );
 
-        // ── Gráfico categorías glosario ────────────────────────────────
+        // ── Gráfico categorías glosario 
         const catEntries = Object.entries(categorias_glosario).sort((a,b) => b[1]-a[1]);
         chartGlosario = crearDoughnut('chart-glosario',
             catEntries.map(e => e[0]),
             catEntries.map(e => e[1])
         );
 
-        // ── Gráfico idiomas (barras horizontales) ──────────────────────
+        // ── Gráfico idiomas 
         const idiEntries = Object.entries(idiomas).sort((a,b) => b[1]-a[1]);
         const ctxIdi = document.getElementById('chart-idiomas').getContext('2d');
         chartIdiomas = new Chart(ctxIdi, {
@@ -331,7 +331,7 @@ async function cargarDashboard() {
             }
         });
 
-        // ── Gráfico historial (línea) ──────────────────────────────────
+        // ── Gráfico historial 
         const ctxHist = document.getElementById('chart-historial').getContext('2d');
         chartHistorial = new Chart(ctxHist, {
             type: 'line',
@@ -359,7 +359,7 @@ async function cargarDashboard() {
             }
         });
 
-        // ── Selector de runs ───────────────────────────────────────────
+        // ── Selector de runs 
         const runsRes  = await fetch('/api/scraper/runs?limite=60', { credentials: 'include' });
         const runs     = await runsRes.json();
         const select   = document.getElementById('run-select');
@@ -376,7 +376,7 @@ async function cargarDashboard() {
         if (ultimo_run) cargarDetalleFuentes(ultimo_run.id, fuentes_ultimo);
         select.addEventListener('change', () => cargarDetalleFuentesDesdeAPI(select.value));
 
-        // ── Tabla historial ────────────────────────────────────────────
+        // ── Tabla historial 
         const tbody = document.getElementById('tabla-historial-body');
         if (!runs.length) {
             tbody.innerHTML = '<tr><td colspan="8" class="dash-empty">Sin ejecuciones registradas</td></tr>';
@@ -409,7 +409,7 @@ async function cargarDashboard() {
     }
 }
 
-// ── Cargar detalle de fuentes desde la API ────────────────────────────────────
+// ── Cargar detalle de fuentes desde la API 
 async function cargarDetalleFuentesDesdeAPI(runId) {
     if (!runId) return;
     try {
@@ -459,7 +459,7 @@ function cargarDetalleFuentes(runId, fuentes) {
     }).join('');
 }
 
-// ── Auth — solo admin ─────────────────────────────────────────────────────────
+// ── Auth — solo admin 
 async function iniciar() {
     try {
         const res = await fetch('/api/auth/me', { credentials: 'include' });
@@ -490,7 +490,7 @@ async function doLogout() {
     window.location.href = '/';
 }
 
-// ── Arranque ──────────────────────────────────────────────────────────────────
+// ── Arranque 
 iniciar();
 </script>
 </body>

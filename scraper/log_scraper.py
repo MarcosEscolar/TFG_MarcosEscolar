@@ -4,9 +4,9 @@ en las tablas ScraperRuns y ScraperFuentes de Supabase, y mantiene el fichero
 estado.json para que el dashboard sepa si el scraper está corriendo ahora mismo.
 
 API pública:
-  run_id = iniciar_run(db)
-  finalizar_run(db, run_id, stats, fuentes_stats)
-  registrar_error(db, run_id, mensaje)
+    run_id = iniciar_run(db)
+    finalizar_run(db, run_id, stats, fuentes_stats)
+    registrar_error(db, run_id, mensaje)
 """
 import json
 import os
@@ -21,7 +21,7 @@ def _ahora():
     return datetime.now(timezone.utc).isoformat()
 
 
-# ── Inicio de ejecución ───────────────────────────────────────────────────────
+# ── Inicio de ejecución 
 
 def iniciar_run(db):
     """
@@ -51,7 +51,7 @@ def iniciar_run(db):
     return run_id
 
 
-# ── Fin de ejecución ─────────────────────────────────────────────────────────
+# ── Fin de ejecución 
 
 def finalizar_run(db, run_id, stats, fuentes_stats):
     """
@@ -115,7 +115,7 @@ def finalizar_run(db, run_id, stats, fuentes_stats):
     _borrar_estado()
 
 
-# ── Error ─────────────────────────────────────────────────────────────────────
+# ── Error 
 
 def registrar_error(db, run_id, error_mensaje):
     """Marca el run como 'error' en Supabase y elimina estado.json."""
@@ -131,7 +131,7 @@ def registrar_error(db, run_id, error_mensaje):
     _borrar_estado()
 
 
-# ── Helpers ───────────────────────────────────────────────────────────────────
+# ── Helpers 
 
 def _borrar_estado():
     try:

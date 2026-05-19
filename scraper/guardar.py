@@ -140,7 +140,7 @@ def guardar_resultados(db, articulos_enriquecidos, urls_existentes, nombres_glos
         else:
             noticias_error += 1
 
-        # ── Términos del glosario ─────────────────────────────────────────
+        # ── Términos del glosario 
         for termino in art.get('terminos_nuevos', []):
             nombre_lower = termino['nombre'].lower()
             if nombre_lower in nombres_vistos:

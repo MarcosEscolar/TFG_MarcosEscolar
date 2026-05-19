@@ -23,13 +23,13 @@ from supabase import create_client
 
 load_dotenv(os.path.join(os.path.dirname(__file__), '.env'))
 
-# ── Configuración ──────────────────────────────────────────────────────────────
+# ── Configuración 
 TIMEOUT       = 8       # segundos por petición HTTP
 PAUSA         = 0.3     # segundos entre peticiones para no saturar los servidores
 LOTE          = 1000    # cuántas noticias pedir a Supabase por vez
 
 
-# ── Conectar a Supabase ────────────────────────────────────────────────────────
+# ── Conectar a Supabase 
 def get_db():
     url = os.getenv('SUPABASE_URL')
     key = os.getenv('SUPABASE_SERVICE_KEY')
@@ -39,7 +39,7 @@ def get_db():
     return create_client(url, key)
 
 
-# ── Extracción de fecha del HTML ───────────────────────────────────────────────
+# ── Extracción de fecha del HTML 
 
 # Metaetiquetas que suelen llevar la fecha de publicación, en orden de fiabilidad
 _META_PROPS = [
@@ -143,9 +143,9 @@ def fecha_desde_patron_url(url):
     """
     Extrae la fecha directamente del patrón de la URL, sin petición HTTP.
     Funciona con medios que incluyen la fecha en su estructura de URL, como:
-      - El País:  /internacional/2026-05-01/titulo
-      - El Mundo: /2026/05/01/titulo
-      - Reuters:  /world/2026-05-01/titulo
+        - El País:  /internacional/2026-05-01/titulo
+        - El Mundo: /2026/05/01/titulo
+        - Reuters:  /world/2026-05-01/titulo
     Devuelve datetime UTC (a medianoche) o None si no hay patrón reconocible.
     """
     # Patrón YYYY-MM-DD en cualquier parte de la URL

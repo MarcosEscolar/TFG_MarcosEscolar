@@ -9,7 +9,7 @@ class Config:
     SUPABASE_ANON_KEY    = os.getenv('SUPABASE_ANON_KEY', '')
     SUPABASE_SERVICE_KEY = os.getenv('SUPABASE_SERVICE_KEY', '')
 
-    # Flask — genera un valor seguro con: python -c "import secrets; print(secrets.token_hex(32))"
+    # Flask — genera un valor seguro 
     SECRET_KEY = os.getenv('SECRET_KEY', '')
 
     # Flask

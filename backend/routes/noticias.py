@@ -15,7 +15,7 @@ def _str_a_array(valor):
 
 
 
-# GET / — listar noticias
+# GET — listar noticias
 @noticias_bp.route('/', methods=['GET'])
 def get_noticias():
     try:
@@ -69,7 +69,7 @@ def get_noticias():
         return jsonify({'error': str(e), 'noticias': []}), 500
 
 
-# GET /<id> — obtener una noticia
+# GET  — obtener una noticia
 @noticias_bp.route('/<noticia_id>', methods=['GET'])
 def get_noticia(noticia_id):
     try:
@@ -83,7 +83,7 @@ def get_noticia(noticia_id):
         return jsonify({'error': str(e)}), 500
 
 
-# POST / — crear noticia
+# POST — crear noticia
 @noticias_bp.route('/', methods=['POST'])
 @require_admin
 def create_noticia():
@@ -121,7 +121,7 @@ def create_noticia():
         return jsonify({'error': str(e)}), 500
 
 
-# PUT /<id> — editar noticia
+# PUT — editar noticia
 @noticias_bp.route('/<noticia_id>', methods=['PUT'])
 @require_admin
 def update_noticia(noticia_id):
@@ -152,7 +152,7 @@ def update_noticia(noticia_id):
         return jsonify({'error': str(e)}), 500
 
 
-# DELETE /<id> — eliminar noticia
+# DELETE — eliminar noticia
 @noticias_bp.route('/<noticia_id>', methods=['DELETE'])
 @require_admin
 def delete_noticia(noticia_id):
@@ -169,7 +169,7 @@ def delete_noticia(noticia_id):
         return jsonify({'error': str(e)}), 500
 
 
-# GET /<id>/relacionadas — noticias puntuadas por temas y términos en común
+# GET — noticias puntuadas por temas y términos en común
 @noticias_bp.route('/<noticia_id>/relacionadas', methods=['GET'])
 def get_relacionadas(noticia_id):
     try:
@@ -190,21 +190,21 @@ def get_relacionadas(noticia_id):
 
         if temas:
             r = (db.table('Noticias').select(campos)
-                 .overlaps('tema', temas)
-                 .neq('id', noticia_id)
-                 .order('fecha', desc=True, nullsfirst=False)
-                 .limit(30)
-                 .execute())
+                .overlaps('tema', temas)
+                .neq('id', noticia_id)
+                .order('fecha', desc=True, nullsfirst=False)
+                .limit(30)
+                .execute())
             for n in (r.data or []):
                 candidatos[n['id']] = n
 
         if terminos:
             r = (db.table('Noticias').select(campos)
-                 .overlaps('terminos', terminos)
-                 .neq('id', noticia_id)
-                 .order('fecha', desc=True, nullsfirst=False)
-                 .limit(30)
-                 .execute())
+                .overlaps('terminos', terminos)
+                .neq('id', noticia_id)
+                .order('fecha', desc=True, nullsfirst=False)
+                .limit(30)
+                .execute())
             for n in (r.data or []):
                 candidatos[n['id']] = n
 
@@ -220,7 +220,7 @@ def get_relacionadas(noticia_id):
         return jsonify([])
 
 
-# GET /temas — listar temas únicos
+# GET — listar temas únicos
 @noticias_bp.route('/temas', methods=['GET'])
 def get_temas():
     try:

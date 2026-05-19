@@ -12,7 +12,7 @@ def _str_a_array(valor):
     return [v.strip() for v in str(valor).split(',') if v.strip()]
 
 
-# GET / — listar términos
+# GET — listar términos
 @glosario_bp.route('/', methods=['GET'])
 def get_terminos():
     try:
@@ -23,8 +23,7 @@ def get_terminos():
         limite    = min(int(request.args.get('limite', 0)), 500)
         offset    = int(request.args.get('offset', 0))
 
-        # Sin límite explícito → devolver todo (compatibilidad con el cache del glosario
-        # que usa index.html para los tooltips de términos)
+        # Sin límite explícito devolver todo
         if limite == 0:
             query = db.table('Glosario').select('*')
             if categoria: query = query.eq('categoria', categoria)
@@ -34,7 +33,7 @@ def get_terminos():
             result = query.order('nombre').execute()
             return jsonify(result.data or [])
 
-        # Con límite → paginación server-side
+        # Con límite y paginación server-side
         query = db.table('Glosario').select('*', count='exact')
         if categoria: query = query.eq('categoria', categoria)
         if q:
@@ -59,7 +58,7 @@ def get_terminos():
         return jsonify({'error': str(e)}), 500
 
 
-# GET /<id> — obtener término
+# GET — obtener término
 @glosario_bp.route('/<termino_id>', methods=['GET'])
 def get_termino(termino_id):
     try:
@@ -72,7 +71,7 @@ def get_termino(termino_id):
         return jsonify({'error': str(e)}), 500
 
 
-# POST / — crear término
+# POST — crear término
 @glosario_bp.route('/', methods=['POST'])
 @require_admin
 def create_termino():
@@ -102,7 +101,7 @@ def create_termino():
         return jsonify({'error': str(e)}), 500
 
 
-# PUT /<id> — editar término
+# PUT — editar término
 @glosario_bp.route('/<termino_id>', methods=['PUT'])
 @require_admin
 def update_termino(termino_id):
@@ -130,7 +129,7 @@ def update_termino(termino_id):
         return jsonify({'error': str(e)}), 500
 
 
-# DELETE /<id> — eliminar término
+# DELETE — eliminar término
 @glosario_bp.route('/<termino_id>', methods=['DELETE'])
 @require_admin
 def delete_termino(termino_id):
@@ -146,7 +145,7 @@ def delete_termino(termino_id):
         return jsonify({'error': str(e)}), 500
 
 
-# GET /categorias — categorías únicas
+# GET — categorías únicas
 @glosario_bp.route('/categorias', methods=['GET'])
 def get_categorias():
     try:
