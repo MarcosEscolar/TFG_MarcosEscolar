@@ -26,17 +26,19 @@ CSS_DIR       = os.path.join(BASE_DIR, 'frontend', 'css')
 IMAGENES_DIR  = os.path.join(BASE_DIR, 'frontend', 'imagenes')
 
 # ─── Blueprints ────────────────────────────────────────────────────────────────
-from routes.auth     import auth_bp
-from routes.noticias import noticias_bp
-from routes.fuentes  import fuentes_bp
-from routes.glosario import glosario_bp
-from routes.scraper  import scraper_bp
+from routes.auth       import auth_bp
+from routes.noticias   import noticias_bp
+from routes.fuentes    import fuentes_bp
+from routes.glosario   import glosario_bp
+from routes.scraper    import scraper_bp
+from routes.favoritos  import favoritos_bp
 
-app.register_blueprint(auth_bp,     url_prefix='/api/auth')
-app.register_blueprint(noticias_bp, url_prefix='/api/noticias')
-app.register_blueprint(fuentes_bp,  url_prefix='/api/fuentes')
-app.register_blueprint(glosario_bp, url_prefix='/api/glosario')
-app.register_blueprint(scraper_bp,  url_prefix='/api/scraper')
+app.register_blueprint(auth_bp,       url_prefix='/api/auth')
+app.register_blueprint(noticias_bp,   url_prefix='/api/noticias')
+app.register_blueprint(fuentes_bp,    url_prefix='/api/fuentes')
+app.register_blueprint(glosario_bp,   url_prefix='/api/glosario')
+app.register_blueprint(scraper_bp,    url_prefix='/api/scraper')
+app.register_blueprint(favoritos_bp,  url_prefix='/api/favoritos')
 
 # ─── Páginas HTML ──────────────────────────────────────────────────────────────
 # La home pública es la presentación. El dashboard real (index.html) vive en /inicio
@@ -65,6 +67,10 @@ def login_page():
 @app.route('/scraper')
 def scraper_dashboard():
     return send_from_directory(PAGES_DIR, 'scraper.html')
+
+@app.route('/guardados')
+def guardados_page():
+    return send_from_directory(PAGES_DIR, 'guardados.html')
 
 # ─── Estáticos ─────────────────────────────────────────────────────────────────
 @app.route('/css/<path:filename>')

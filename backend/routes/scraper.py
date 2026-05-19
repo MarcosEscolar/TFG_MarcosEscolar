@@ -160,10 +160,16 @@ def get_stats():
             lang = row.get('idioma') or 'Desconocido'
             idioma_count[lang] = idioma_count.get(lang, 0) + 1
 
-        # ── Totales globales ───────────────────────────────────────────
-        total_noticias = sum(idioma_count.values())
-        total_glosario = sum(cat_count.values())
-        total_runs     = len(historial_res.data or [])
+        # ── Totales globales (count exacto, sin límite de filas) ──────
+        total_noticias = (db.table('Noticias')
+                            .select('id', count='exact')
+                            .limit(1).execute().count or 0)
+        total_glosario = (db.table('Glosario')
+                            .select('id', count='exact')
+                            .limit(1).execute().count or 0)
+        total_runs     = (db.table('ScraperRuns')
+                            .select('id', count='exact')
+                            .limit(1).execute().count or 0)
 
         return jsonify({
             'ultimo_run':    ultimo_run,
