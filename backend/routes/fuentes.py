@@ -28,7 +28,7 @@ def get_fuentes():
         return jsonify({'error': str(e)}), 500
 
 
-# GET /<id> — obtener fuente
+# GET — obtener fuente
 @fuentes_bp.route('/<fuente_id>', methods=['GET'])
 def get_fuente(fuente_id):
     try:
@@ -41,7 +41,7 @@ def get_fuente(fuente_id):
         return jsonify({'error': str(e)}), 500
 
 
-# POST / — crear fuente
+# POST — crear fuente
 @fuentes_bp.route('/', methods=['POST'])
 @require_admin
 def create_fuente():
@@ -71,7 +71,7 @@ def create_fuente():
         return jsonify({'error': str(e)}), 500
 
 
-# PUT /<id> — editar fuente
+# PUT — editar fuente
 @fuentes_bp.route('/<fuente_id>', methods=['PUT'])
 @require_admin
 def update_fuente(fuente_id):
@@ -96,7 +96,7 @@ def update_fuente(fuente_id):
         return jsonify({'error': str(e)}), 500
 
 
-# DELETE /<id> — eliminar fuente
+# DELETE — eliminar fuente
 @fuentes_bp.route('/<fuente_id>', methods=['DELETE'])
 @require_admin
 def delete_fuente(fuente_id):

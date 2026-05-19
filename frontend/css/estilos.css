@@ -1,7 +1,5 @@
 /* ═══════════════════════════════════════════════
     GEOSFERA — Estilos globales
-    Tema: Intelligence Dashboard / Editorial oscuro
-    Fuentes: Syne (títulos) + Source Serif 4 (cuerpo)
 ═══════════════════════════════════════════════ */
 
 @import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=Source+Serif+4:ital,wght@0,300;0,400;0,600;1,300&display=swap');
@@ -1962,4 +1960,3 @@ main.dash-wrap {
   letter-spacing: .06em;
   text-transform: uppercase;
 }
-

@@ -25,7 +25,7 @@ PAGES_DIR     = os.path.join(BASE_DIR, 'frontend', 'pages')
 CSS_DIR       = os.path.join(BASE_DIR, 'frontend', 'css')
 IMAGENES_DIR  = os.path.join(BASE_DIR, 'frontend', 'imagenes')
 
-# ─── Blueprints ────────────────────────────────────────────────────────────────
+# Blueprints 
 from routes.auth       import auth_bp
 from routes.noticias   import noticias_bp
 from routes.fuentes    import fuentes_bp
@@ -40,8 +40,8 @@ app.register_blueprint(glosario_bp,   url_prefix='/api/glosario')
 app.register_blueprint(scraper_bp,    url_prefix='/api/scraper')
 app.register_blueprint(favoritos_bp,  url_prefix='/api/favoritos')
 
-# ─── Páginas HTML ──────────────────────────────────────────────────────────────
-# La home pública es la presentación. El dashboard real (index.html) vive en /inicio
+# Páginas HTML 
+# La pagina pública es la presentación. El dashboard real (index.html) vive en /inicio
 # y exige sesión iniciada (la propia página redirige a /login si no la tiene).
 @app.route('/')
 @app.route('/presentacion')
@@ -72,7 +72,7 @@ def scraper_dashboard():
 def guardados_page():
     return send_from_directory(PAGES_DIR, 'guardados.html')
 
-# ─── Estáticos ─────────────────────────────────────────────────────────────────
+# Estáticos 
 @app.route('/css/<path:filename>')
 def css(filename):
     return send_from_directory(CSS_DIR, filename)
@@ -89,7 +89,7 @@ def api_info():
 def health():
     return jsonify({'estado': 'ok'})
 
-# ─── Errores ───────────────────────────────────────────────────────────────────
+# Errores 
 @app.errorhandler(404)
 def not_found(e):
     return jsonify({'error': 'Ruta no encontrada.'}), 404

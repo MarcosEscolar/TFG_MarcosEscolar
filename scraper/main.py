@@ -2,15 +2,15 @@
 main.py — Orquestador del scraper de GEOSFERA.
 
 Flujo:
-  1. Conectar a Supabase y registrar inicio de ejecución
-  2. Obtener artículos de todos los feeds RSS activos
-  3. Filtrar los que ya existen (por URL)
-  4. Enriquecer cada artículo nuevo con Gemini (resumen, tema, términos)
-  5. Guardar noticias y términos nuevos en Supabase
-  6. Registrar fin de ejecución con estadísticas por fuente
+    1. Conectar a Supabase y registrar inicio de ejecución
+    2. Obtener artículos de todos los feeds RSS activos
+    3. Filtrar los que ya existen (por URL)
+    4. Enriquecer cada artículo nuevo con Gemini (resumen, tema, términos)
+    5. Guardar noticias y términos nuevos en Supabase
+    6. Registrar fin de ejecución con estadísticas por fuente
 
 Uso:
-  python main.py
+    python main.py
 """
 import os
 import sys
@@ -45,14 +45,14 @@ def main():
     if not usar_ia:
         print('[WARN] GEMINI_API_KEY no encontrada → se guardan noticias sin enriquecer')
 
-    # ── 1. Conexión a Supabase + inicio de log ───────────────────────────
+    # ── 1. Conexión a Supabase + inicio de log 
     db = get_db()
     print('[DB] Conectado a Supabase')
     run_id = iniciar_run(db)
     print(f'[LOG] Ejecución iniciada (run_id={run_id})')
 
     try:
-        # ── 2. Cargar URLs y glosario ANTES de parsear feeds ────────────
+        # ── 2. Cargar URLs y glosario ANTES de parsear feeds 
         # Así feeds.py puede saltarse trafilatura en artículos ya existentes,
         # reduciendo el tiempo de ejecución de ~40 min a ~5-10 min.
         print('[DB] Cargando URLs existentes y términos del glosario…')
@@ -60,7 +60,7 @@ def main():
         nombres_glosario = obtener_nombres_glosario(db)
         print(f'[DB] {len(urls_existentes)} URLs en BD, {len(nombres_glosario)} términos en glosario')
 
-        # ── 3. Obtener artículos de los feeds (solo trafilatura en nuevos) ──
+        # ── 3. Obtener artículos de los feeds (solo trafilatura en nuevos) 
         articulos, fuentes_stats = obtener_articulos(db, urls_existentes)
         if not articulos:
             print('[INFO] No se encontraron artículos. Fin.')
@@ -86,7 +86,7 @@ def main():
             }, fuentes_stats)
             return
 
-        # ── 4. Enriquecer con IA ─────────────────────────────────────────
+        # ── 4. Enriquecer con IA 
         enriquecidos = []
         total = len(nuevos)
 
@@ -107,14 +107,14 @@ def main():
 
             enriquecidos.append({**art, **resultado})
 
-        # ── 5. Guardar en Supabase ────────────────────────────────────────
+        # ── 5. Guardar en Supabase 
         print('[DB] Guardando en Supabase…')
         stats = guardar_resultados(db, enriquecidos, urls_existentes, nombres_glosario)
         # Sumar los duplicados filtrados antes del enriquecimiento (los que ya
         # estaban en la BD por URL y nunca llegaron a guardar_resultados)
         stats['noticias_duplicadas'] += duplicados
 
-        # ── 6. Combinar stats de fuentes (recibidos + guardados) ──────────
+        # ── 6. Combinar stats de fuentes (recibidos + guardados) 
         guardadas_por_fuente = stats.pop('guardadas_por_fuente', {})
         for fs in fuentes_stats:
             fs['articulos_guardados'] = guardadas_por_fuente.get(fs['fuente_nombre'], 0)

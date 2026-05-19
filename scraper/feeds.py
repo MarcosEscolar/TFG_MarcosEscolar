@@ -28,18 +28,22 @@ def parsear_feed(fuente, urls_existentes=None):
 
     urls_existentes: set de URLs ya guardadas en Supabase. Si se proporciona,
     se salta el costoso paso de trafilatura para los artículos duplicados.
+
+    IMPORTANTE: los errores de conexión y parseo del feed se dejan propagar al
+    caller (_parsear_feed_con_stat) para que pueda registrarlos en error_mensaje.
+    Solo los errores al procesar entradas individuales se capturan internamente.
     """
     articulos = []
     urls_existentes = urls_existentes or set()
-    try:
-        # Timeout de 10s para no quedarse colgado en fuentes lentas o caídas
-        resp = requests.get(fuente['url_rss'], timeout=10, headers={'User-Agent': 'Mozilla/5.0'})
-        feed = feedparser.parse(resp.content)
-        if feed.bozo and not feed.entries:
-            print(f'  [WARN] Feed inaccesible: {fuente["nombre"]}')
-            return []
 
-        for entry in feed.entries:
+    # Conexión y parseo inicial: si falla, la excepción sube al caller.
+    resp = requests.get(fuente['url_rss'], timeout=10, headers={'User-Agent': 'Mozilla/5.0'})
+    feed = feedparser.parse(resp.content)
+    if feed.bozo and not feed.entries:
+        raise ConnectionError(f'Feed inaccesible o malformado: {fuente["nombre"]}')
+
+    for entry in feed.entries:
+        try:
             titulo = entry.get('title', '').strip()
             url    = entry.get('link', '').strip()
 
@@ -60,14 +64,14 @@ def parsear_feed(fuente, urls_existentes=None):
             # Si la URL ya existe en Supabase, la marcamos sin trafilatura ni Gemini
             if url in urls_existentes:
                 articulos.append({
-                    'titulo':             titulo,
-                    'url':                url,
-                    'resumen_raw':        '',
-                    'contenido':          '',
-                    'fuente':             fuente['nombre'],
-                    'idioma':             fuente.get('idioma', 'ES'),
-                    'fecha':  fecha,
-                    '_duplicado':         True,   # señal interna para saltarse IA
+                    'titulo':      titulo,
+                    'url':         url,
+                    'resumen_raw': '',
+                    'contenido':   '',
+                    'fuente':      fuente['nombre'],
+                    'idioma':      fuente.get('idioma', 'ES'),
+                    'fecha':       fecha,
+                    '_duplicado':  True,
                 })
                 continue
 
@@ -80,24 +84,26 @@ def parsear_feed(fuente, urls_existentes=None):
 
             # Limpiar etiquetas HTML y espacios del resumen
             resumen_raw = re.sub(r'<[^>]+>', ' ', resumen_raw or '').strip()
-            resumen_raw = re.sub(r'\s+', ' ', resumen_raw)[:800]  # máx 800 chars
+            resumen_raw = re.sub(r'\s+', ' ', resumen_raw)[:800]
 
             # Intentar extraer el artículo completo con trafilatura
             contenido = extraer_contenido(url)
 
             articulos.append({
-                'titulo':            titulo,
-                'url':               url,
-                'resumen_raw':       resumen_raw,
-                'contenido':         contenido,   # texto completo o '' si no se pudo
-                'fuente':            fuente['nombre'],
-                'idioma':            fuente.get('idioma', 'ES'),
-                'fecha': fecha,
-                '_duplicado':        False,
+                'titulo':      titulo,
+                'url':         url,
+                'resumen_raw': resumen_raw,
+                'contenido':   contenido,
+                'fuente':      fuente['nombre'],
+                'idioma':      fuente.get('idioma', 'ES'),
+                'fecha':       fecha,
+                '_duplicado':  False,
             })
 
-    except Exception as e:
-        print(f'  [ERROR] Fallo al parsear {fuente["nombre"]}: {e}')
+        except Exception as e:
+            # Error en una entrada concreta: se registra pero no detiene el resto
+            print(f'  [WARN] Error procesando entrada de {fuente["nombre"]}: {e}')
+            continue
 
     return articulos
 

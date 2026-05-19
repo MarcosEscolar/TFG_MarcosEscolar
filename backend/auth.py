@@ -8,7 +8,7 @@ from functools import wraps
 from flask import session, jsonify
 
 
-# ─── Contraseñas ───────────────────────────────────────────────────────────────
+# Contraseñas 
 
 def hash_password(password: str) -> str:
     """Devuelve el hash bcrypt de una contraseña."""
@@ -20,7 +20,7 @@ def check_password(password: str, hashed: str) -> bool:
     return bcrypt.checkpw(password.encode('utf-8'), hashed.encode('utf-8'))
 
 
-# ─── Decoradores ───────────────────────────────────────────────────────────────
+# Decoradores 
 
 def require_login(fn):
     """Protege una ruta: el usuario debe haber iniciado sesión."""

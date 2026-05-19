@@ -12,7 +12,7 @@ from database import get_db
 scraper_bp = Blueprint('scraper', __name__)
 
 
-# ── Estado en tiempo real ────────────────────────────────────────────────────
+# Estado del Scraper  
 
 @scraper_bp.route('/estado', methods=['GET'])
 def get_estado():
@@ -40,7 +40,7 @@ def get_estado():
         return jsonify({'corriendo': False, 'error': str(e)})
 
 
-# ── Lista de ejecuciones ─────────────────────────────────────────────────────
+# Lista de ejecuciones 
 
 @scraper_bp.route('/runs', methods=['GET'])
 def get_runs():
@@ -60,7 +60,7 @@ def get_runs():
         return jsonify({'error': str(e)}), 500
 
 
-# ── Detalle de una ejecución ─────────────────────────────────────────────────
+# Detalle de una ejecución 
 
 @scraper_bp.route('/runs/<int:run_id>', methods=['GET'])
 def get_run(run_id):
@@ -86,7 +86,7 @@ def get_run(run_id):
         return jsonify({'error': str(e)}), 500
 
 
-# ── Estadísticas globales para el dashboard ──────────────────────────────────
+# Estadísticas globales para el dashboard 
 
 @scraper_bp.route('/stats', methods=['GET'])
 def get_stats():
@@ -101,7 +101,7 @@ def get_stats():
     try:
         db = get_db()
 
-        # ── Último run completado ──────────────────────────────────────
+        # Último run completado 
         ultimo_run_res = (
             db.table('ScraperRuns')
             .select('*')
@@ -123,7 +123,7 @@ def get_stats():
             )
             fuentes_ultimo = fuentes_res.data or []
 
-        # ── Historial de los últimos 30 runs ───────────────────────────
+        # Historial de los últimos 30 runs 
         historial_res = (
             db.table('ScraperRuns')
             .select('id, fecha_inicio, noticias_guardadas, estado, duracion_segundos')
@@ -133,7 +133,7 @@ def get_stats():
         )
         historial = list(reversed(historial_res.data or []))
 
-        # ── Temas de noticias ──────────────────────────────────────────
+        # Temas de noticias 
         temas_res = db.table('Noticias').select('tema').execute()
         temas_count = {}
         for row in (temas_res.data or []):
@@ -145,7 +145,7 @@ def get_stats():
                 if t:
                     temas_count[t] = temas_count.get(t, 0) + 1
 
-        # ── Categorías de glosario ─────────────────────────────────────
+        # Categorías de glosario
         cat_res = db.table('Glosario').select('categoria').execute()
         cat_count = {}
         for row in (cat_res.data or []):
@@ -153,14 +153,14 @@ def get_stats():
             if c:
                 cat_count[c] = cat_count.get(c, 0) + 1
 
-        # ── Noticias por idioma ────────────────────────────────────────
+        # Noticias por idioma
         idioma_res = db.table('Noticias').select('idioma').execute()
         idioma_count = {}
         for row in (idioma_res.data or []):
             lang = row.get('idioma') or 'Desconocido'
             idioma_count[lang] = idioma_count.get(lang, 0) + 1
 
-        # ── Totales globales (count exacto, sin límite de filas) ──────
+        # Datos globales 
         total_noticias = (db.table('Noticias')
                             .select('id', count='exact')
                             .limit(1).execute().count or 0)

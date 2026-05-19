@@ -27,7 +27,7 @@ def get_favoritos_noticias():
         db         = get_db()
         usuario_id = session.get('user_id')
 
-        # Obtener IDs guardados ordenados por fecha de guardado (más reciente primero)
+        # Obtener IDs guardados ordenados por fecha más reciente 
         res_fav = db.table('Favoritos') \
             .select('noticia_id, created_at') \
             .eq('usuario_id', usuario_id) \
@@ -42,7 +42,7 @@ def get_favoritos_noticias():
         # Obtener las noticias completas
         res_noticias = db.table('Noticias').select('*').in_('id', ids).execute()
 
-        # Ordenar igual que los favoritos (más reciente guardado primero)
+        # Ordenar igual que los favoritos, más reciente guardado primero
         orden = {nid: i for i, nid in enumerate(ids)}
         noticias = sorted(res_noticias.data, key=lambda n: orden.get(n['id'], 999))
 
@@ -77,7 +77,7 @@ def add_favorito():
         return jsonify({'error': str(e)}), 500
 
 
-# DELETE /<noticia_id> — quitar una noticia de favoritos
+# DELETE — quitar una noticia de favoritos
 @favoritos_bp.route('/<int:noticia_id>', methods=['DELETE'])
 @require_login
 def remove_favorito(noticia_id):
