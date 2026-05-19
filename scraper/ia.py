@@ -10,6 +10,7 @@ Por cada artículo genera:
 """
 import json
 import os
+import time
 import google.generativeai as genai
 
 _model = None
@@ -82,42 +83,64 @@ REGLAS DE FORMATO DE TEXTO (MUY IMPORTANTE):
 - Usa concordancia de género correcta en español (ej. "la soberanía", no "el soberanía"; "el derecho internacional", no "la derecho internacional").
 - Si necesitas citar literalmente algo, usa comillas dobles rectas: " ... "."""
 
-    try:
-        model  = get_model()
-        response = model.generate_content(prompt)
-        texto = response.text.strip()
+    REINTENTOS   = 3
+    ESPERA_BASE  = 10   # segundos entre reintentos (rate limit o error transitorio)
 
-        if texto.startswith('```'):
-            texto = texto.split('```')[1]
-            if texto.startswith('json'):
-                texto = texto[4:]
-            texto = texto.strip()
+    for intento in range(1, REINTENTOS + 1):
+        try:
+            model    = get_model()
+            response = model.generate_content(prompt)
+            texto    = response.text.strip()
 
-        resultado = json.loads(texto)
+            # Limpiar bloque ```json ... ``` si Gemini lo incluye
+            if texto.startswith('```'):
+                texto = texto.split('```')[1]
+                if texto.startswith('json'):
+                    texto = texto[4:]
+                texto = texto.strip()
 
-        analisis = resultado.get('analisis_es', '')
-        if not analisis:
-            analisis = contenido if tiene_contenido else ''
+            # A veces Gemini añade texto antes o después del JSON; extraer solo {}
+            inicio = texto.find('{')
+            fin    = texto.rfind('}')
+            if inicio != -1 and fin != -1:
+                texto = texto[inicio:fin + 1]
 
-        # tema puede llegar como array ["x"] o ["x","y"], o como string legacy "x"
-        tema_raw = resultado.get('tema', [])
-        if isinstance(tema_raw, str):
-            tema_raw = [tema_raw] if tema_raw else []
-        tema_raw = [t.strip() for t in tema_raw if isinstance(t, str) and t.strip()][:2]
+            resultado = json.loads(texto)
 
-        return {
-            'titulo_es':       resultado.get('titulo_es', titulo),
-            'resumen_es':      resultado.get('resumen_es', ''),
-            'analisis_es':     analisis,
-            'tema':            tema_raw,
-            'terminos_nuevos': resultado.get('terminos_nuevos', []),
-        }
+            analisis = resultado.get('analisis_es', '')
+            if not analisis:
+                analisis = contenido if tiene_contenido else ''
 
-    except json.JSONDecodeError as e:
-        print(f'  [IA] Error parseando JSON para "{titulo[:50]}": {e}')
-    except Exception as e:
-        print(f'  [IA] Error llamando a Gemini para "{titulo[:50]}": {e}')
+            # tema puede llegar como array ["x"] o ["x","y"], o como string legacy "x"
+            tema_raw = resultado.get('tema', [])
+            if isinstance(tema_raw, str):
+                tema_raw = [tema_raw] if tema_raw else []
+            tema_raw = [t.strip() for t in tema_raw if isinstance(t, str) and t.strip()][:2]
 
+            return {
+                'titulo_es':       resultado.get('titulo_es', titulo),
+                'resumen_es':      resultado.get('resumen_es', ''),
+                'analisis_es':     analisis,
+                'tema':            tema_raw,
+                'terminos_nuevos': resultado.get('terminos_nuevos', []),
+            }
+
+        except json.JSONDecodeError as e:
+            print(f'  [IA] Intento {intento}/{REINTENTOS} — JSON inválido para "{titulo[:50]}": {e}')
+            if intento < REINTENTOS:
+                time.sleep(ESPERA_BASE)
+
+        except Exception as e:
+            msg = str(e).lower()
+            # Rate limit o error de cuota: esperar más antes de reintentar
+            espera = ESPERA_BASE * 2 if ('quota' in msg or 'rate' in msg or '429' in msg) else ESPERA_BASE
+            print(f'  [IA] Intento {intento}/{REINTENTOS} — Error para "{titulo[:50]}": {e}')
+            if intento < REINTENTOS:
+                print(f'  [IA] Esperando {espera}s antes de reintentar…')
+                time.sleep(espera)
+
+    # Fallback: los 3 intentos fallaron
+    print(f'  [IA] Fallback sin traducción para "{titulo[:50]}"')
     return {
         'titulo_es':       titulo,
         'resumen_es':      resumen_raw[:300] if resumen_raw else '',

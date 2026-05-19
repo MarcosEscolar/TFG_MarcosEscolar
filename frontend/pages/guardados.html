@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Guardados — GEOSFERA</title>
+  <link rel="icon" type="image/png" href="/imagenes/MundoIcono.png">
+  <link rel="stylesheet" href="/css/estilos.css">
+</head>
+<body>
+
+<header>
+  <h1>GEOSFERA</h1>
+  <nav>
+    <a href="/inicio">Inicio</a>
+    <a href="/glosario">Glosario</a>
+    <a href="/fuentes">Fuentes</a>
+    <a href="/scraper" class="nav-solo-admin">Scraper</a>
+  </nav>
+  <div id="nav-auth"></div>
+</header>
+
+<main>
+  <div class="guardados-header">
+    <h2>Guardados</h2>
+    <span class="guardados-count" id="guardados-count">0 noticias</span>
+  </div>
+  <div id="feed-guardados">Cargando…</div>
+</main>
+
+<!-- Panel de detalle (igual que en index) -->
+<div class="detalle-overlay" id="detalle-overlay" onclick="cerrarDetalle()"></div>
+<div class="detalle-panel" id="detalle-panel">
+  <div class="detalle-header">
+    <button class="btn-cerrar-detalle" onclick="cerrarDetalle()">← Volver</button>
+    <span class="detalle-tema-badge" id="d-tema"></span>
+  </div>
+  <div class="detalle-body">
+    <h2 class="detalle-titulo" id="d-titulo"></h2>
+    <div class="detalle-meta" id="d-meta"></div>
+    <div class="detalle-contenido" id="d-contenido"></div>
+  </div>
+  <div class="detalle-footer">
+    <a class="btn-original" id="d-url" href="#" target="_blank">Leer artículo original →</a>
+  </div>
+</div>
+
+<!-- Tooltip de términos del glosario -->
+<div class="term-tooltip" id="term-tooltip">
+  <strong id="tt-nombre"></strong>
+  <p id="tt-def"></p>
+</div>
+
+<script>
+  let usuario = null
+  let terminosGlosario = []
+
+  const SVG_NO_GUARDADO = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>`
+  const SVG_GUARDADO    = `<svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>`
+
+  function formatFecha(str) {
+    if (!str) return ''
+    const d = new Date(str)
+    if (isNaN(d)) return str
+    return d.toLocaleString('es-ES', {
+      day: '2-digit', month: '2-digit', year: 'numeric',
+      hour: '2-digit', minute: '2-digit'
+    })
+  }
+
+  async function iniciar() {
+    try {
+      const res = await fetch('/api/auth/me', { credentials: 'include' })
+      if (res.ok) { usuario = await res.json(); renderNavUsuario() }
+      else { window.location.replace('/login'); return }
+    } catch { window.location.replace('/login'); return }
+    await cargarTerminosGlosario()
+    cargarGuardados()
+  }
+
+  function renderNavUsuario() {
+    document.getElementById('nav-auth').innerHTML = `
+      <div class="nav-user">
+        ${usuario.rol === 'admin' ? '<span class="badge-admin">admin</span>' : ''}
+        <span>${usuario.nombre}</span>
+        <a href="/guardados" class="btn-guardados" title="Noticias guardadas">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/>
+          </svg>
+        </a>
+        <button class="nav-auth-btn" onclick="doLogout()">Salir</button>
+      </div>`
+    if (usuario.rol === 'admin')
+      document.querySelectorAll('.nav-solo-admin').forEach(el => el.style.display = 'inline')
+  }
+
+  async function doLogout() {
+    await fetch('/api/auth/logout', { method: 'POST', credentials: 'include' })
+    window.location.href = '/'
+  }
+
+  async function cargarTerminosGlosario() {
+    try {
+      const res = await fetch('/api/glosario/', { credentials: 'include' })
+      if (res.ok) terminosGlosario = await res.json()
+    } catch {}
+  }
+
+  async function cargarGuardados() {
+    const feed = document.getElementById('feed-guardados')
+    feed.innerHTML = '<p style="color:var(--text2)">Cargando…</p>'
+    try {
+      const res  = await fetch('/api/favoritos/noticias', { credentials: 'include' })
+      const list = await res.json()
+
+      const count = document.getElementById('guardados-count')
+      count.textContent = `${list.length} noticia${list.length !== 1 ? 's' : ''}`
+
+      if (!list.length) {
+        feed.innerHTML = `
+          <div class="guardados-empty">
+            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+              <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/>
+            </svg>
+            <p>Todavía no has guardado ninguna noticia.</p>
+            <a href="/inicio">Ir al inicio</a>
+          </div>`
+        return
+      }
+
+      feed.innerHTML = list.map(n => `
+        <div class="tarjeta" data-id="${n.id}" style="position:relative">
+          <button class="btn-favorito guardado" data-id="${n.id}" title="Quitar de guardados">
+            ${SVG_GUARDADO}
+          </button>
+          ${n.tema ? `<div class="tema">${n.tema}</div>` : ''}
+          <h2>${n.titulo}</h2>
+          <p>${n.resumen_es || ''}</p>
+          <div class="meta">
+            <span class="fuente">${n.fuente || ''}</span>
+            <span class="idioma">${n.idioma || ''}</span>
+            ${n.fecha ? `<span class="fecha"> ${formatFecha(n.fecha)}</span>` : ''}
+            <button class="btn-admin btn-leer" data-id="${n.id}" style="margin-left:auto">Leer más →</button>
+          </div>
+          ${n.terminos?.length ? `<div class="terminos">${Array.isArray(n.terminos) ? n.terminos.join(', ') : n.terminos}</div>` : ''}
+        </div>`).join('')
+
+      // Eventos de marcador
+      feed.querySelectorAll('.btn-favorito').forEach(b =>
+        b.addEventListener('click', e => quitarGuardado(e, parseInt(b.dataset.id)))
+      )
+      // Eventos leer más
+      feed.querySelectorAll('.btn-leer').forEach(b =>
+        b.addEventListener('click', e => { e.stopPropagation(); abrirDetalle(b.dataset.id) })
+      )
+      // Click en tarjeta
+      feed.querySelectorAll('.tarjeta').forEach(t =>
+        t.addEventListener('click', () => abrirDetalle(t.dataset.id))
+      )
+    } catch (err) {
+      feed.innerHTML = `<p style="color:var(--rojo)">Error: ${err.message}</p>`
+    }
+  }
+
+  async function quitarGuardado(e, noticiaId) {
+    e.stopPropagation()
+    await fetch(`/api/favoritos/${noticiaId}`, { method: 'DELETE', credentials: 'include' })
+    // Eliminar la tarjeta con animación
+    const tarjeta = document.querySelector(`.tarjeta[data-id="${noticiaId}"]`)
+    if (tarjeta) {
+      tarjeta.style.transition = 'opacity .25s, transform .25s'
+      tarjeta.style.opacity = '0'
+      tarjeta.style.transform = 'scale(.97)'
+      setTimeout(() => {
+        tarjeta.remove()
+        // Actualizar contador
+        const feed  = document.getElementById('feed-guardados')
+        const total = feed.querySelectorAll('.tarjeta').length
+        document.getElementById('guardados-count').textContent = `${total} noticia${total !== 1 ? 's' : ''}`
+        if (!total) cargarGuardados() // mostrar estado vacío
+      }, 250)
+    }
+  }
+
+  // ── Panel de detalle ────────────────────────────────────────────────────────
+  async function abrirDetalle(id) {
+    try {
+      const res  = await fetch(`/api/noticias/${id}`, { credentials: 'include' })
+      const data = await res.json()
+      if (!res.ok) return
+
+      document.getElementById('d-titulo').textContent = data.titulo || ''
+      document.getElementById('d-tema').textContent   = data.tema   || ''
+      document.getElementById('d-tema').style.display = data.tema ? '' : 'none'
+      document.getElementById('d-url').href           = data.url    || '#'
+
+      document.getElementById('d-meta').innerHTML = [
+        data.fuente ? `<span>📰 ${data.fuente}</span>` : '',
+        data.idioma ? `<span>🌐 ${data.idioma}</span>` : '',
+        data.fecha  ? `<span>🕐 ${formatFecha(data.fecha)}</span>` : '',
+      ].filter(Boolean).join('')
+
+      const texto = data.contenido || data.resumen_es || 'Sin contenido disponible.'
+      document.getElementById('d-contenido').innerHTML = enlazarTerminos(texto)
+
+      document.getElementById('detalle-overlay').classList.add('open')
+      document.getElementById('detalle-panel').classList.add('open')
+      document.getElementById('detalle-panel').scrollTop = 0
+      document.body.style.overflow = 'hidden'
+      activarTooltips()
+    } catch (err) {
+      console.error('Error abriendo detalle:', err)
+    }
+  }
+
+  function cerrarDetalle() {
+    document.getElementById('detalle-overlay').classList.remove('open')
+    document.getElementById('detalle-panel').classList.remove('open')
+    document.body.style.overflow = ''
+    ocultarTooltip()
+  }
+
+  // ── Hipervínculos de glosario ───────────────────────────────────────────────
+  function enlazarTerminos(texto) {
+    if (!terminosGlosario.length) return escapeHtml(texto)
+    const terminos    = [...terminosGlosario].sort((a, b) => b.nombre.length - a.nombre.length)
+    const mapa        = {}
+    terminos.forEach(t => { mapa[t.nombre.toLowerCase()] = t })
+    const alternancia = terminos.map(t => escapeRegex(t.nombre)).join('|')
+    const patron      = new RegExp(`(?<![\\w<"])(${alternancia})(?![\\w>"])`, 'gi')
+    return escapeHtml(texto).replace(patron, match => {
+      const t = mapa[match.toLowerCase()]
+      if (!t) return match
+      return `<span class="term-link" data-nombre="${escapeAttr(t.nombre)}" data-def="${escapeAttr(t.definicion || '')}">${match}</span>`
+    })
+  }
+
+  function escapeHtml(str)  { return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;') }
+  function escapeAttr(str)  { return str.replace(/"/g,'&quot;').replace(/'/g,'&#39;') }
+  function escapeRegex(str) { return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') }
+
+  // ── Tooltip ─────────────────────────────────────────────────────────────────
+  function activarTooltips() {
+    const tooltip = document.getElementById('term-tooltip')
+    document.querySelectorAll('.term-link').forEach(el => {
+      el.addEventListener('mouseenter', e => {
+        document.getElementById('tt-nombre').textContent = el.dataset.nombre
+        document.getElementById('tt-def').textContent    = el.dataset.def
+        tooltip.classList.add('visible')
+        posicionarTooltip(e)
+      })
+      el.addEventListener('mousemove', posicionarTooltip)
+      el.addEventListener('mouseleave', ocultarTooltip)
+    })
+  }
+
+  function posicionarTooltip(e) {
+    const tt = document.getElementById('term-tooltip')
+    tt.style.left = Math.min(e.clientX + 12, window.innerWidth  - tt.offsetWidth  - 16) + 'px'
+    tt.style.top  = Math.min(e.clientY + 12, window.innerHeight - tt.offsetHeight - 16) + 'px'
+  }
+
+  function ocultarTooltip() { document.getElementById('term-tooltip').classList.remove('visible') }
+
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') cerrarDetalle() })
+
+  iniciar()
+</script>
+</body>
+</html>

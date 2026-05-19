@@ -95,7 +95,7 @@ def main():
 
             if usar_ia:
                 resultado = enriquecer_articulo(art, nombres_glosario)
-                time.sleep(0.5)  # pausa para no saturar la API
+                time.sleep(4)  # Gemini Flash free: 15 req/min → mín. 4 s entre llamadas
             else:
                 resultado = {
                     'titulo_es':       art['titulo'],

@@ -78,7 +78,9 @@
     <form onsubmit="submitNoticia(event)">
       <input type="hidden" id="n-id">
       <div class="fg"><label>Título *</label><input type="text" id="n-titulo" required></div>
-      <div class="fg"><label>Resumen</label><textarea id="n-resumen"></textarea></div>
+      <div class="fg"><label>Resumen (tarjeta)</label><textarea id="n-resumen" rows="3"></textarea></div>
+      <div class="fg"><label>Cuerpo / Análisis</label><textarea id="n-contenido" rows="7" placeholder="Texto largo del artículo o análisis geopolítico…"></textarea></div>
+      
       <div class="fg"><label>URL *</label><input type="url" id="n-url" required></div>
       <div class="fg"><label>Fuente *</label><input type="text" id="n-fuente" required></div>
       <div class="grid-2">
@@ -108,7 +110,13 @@
 
 <script>
   let usuario = null
-  let terminosGlosario = []  // cache [{nombre, definicion}]
+  let terminosGlosario = []    // cache [{nombre, definicion}]
+  let favoritosSet = new Set() // IDs de noticias guardadas por el usuario
+
+  // SVG marcador vacío (noticia NO guardada — invita a guardar)
+  const SVG_NO_GUARDADO = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>`
+  // SVG marcador relleno (noticia guardada)
+  const SVG_GUARDADO = `<svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>`
 
   // Formatea una fecha ISO a "dd/mm/aaaa HH:MM" en español
   function formatFecha(str) {
@@ -137,8 +145,44 @@
       if (res.ok) { usuario = await res.json(); renderNavUsuario() }
       else { window.location.replace('/login'); return }
     } catch { window.location.replace('/login'); return }
+    // Glosario y favoritos en paralelo; esperar a ambos antes de renderizar
+    // (el glosario debe estar listo antes de que se abra cualquier panel de detalle)
+    await Promise.all([cargarTerminosGlosario(), cargarFavoritos()])
     cargarNoticias()
-    cargarTerminosGlosario()
+  }
+
+  async function cargarFavoritos() {
+    try {
+      const res = await fetch('/api/favoritos/', { credentials: 'include' })
+      if (res.ok) {
+        const ids = await res.json()
+        favoritosSet = new Set(ids)
+      }
+    } catch {}
+  }
+
+  async function toggleFavorito(e, noticiaId) {
+    e.stopPropagation()
+    const btn = e.currentTarget
+    const guardado = favoritosSet.has(noticiaId)
+
+    if (guardado) {
+      // Quitar de favoritos
+      favoritosSet.delete(noticiaId)
+      btn.innerHTML = SVG_NO_GUARDADO
+      btn.classList.remove('guardado')
+      await fetch(`/api/favoritos/${noticiaId}`, { method: 'DELETE', credentials: 'include' })
+    } else {
+      // Guardar
+      favoritosSet.add(noticiaId)
+      btn.innerHTML = SVG_GUARDADO
+      btn.classList.add('guardado')
+      await fetch('/api/favoritos/', {
+        method: 'POST', credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ noticia_id: noticiaId })
+      })
+    }
   }
 
   function renderNavUsuario() {
@@ -146,6 +190,11 @@
       <div class="nav-user">
         ${usuario.rol === 'admin' ? '<span class="badge-admin">admin</span>' : ''}
         <span>${usuario.nombre}</span>
+        <a href="/guardados" class="btn-guardados" title="Noticias guardadas">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/>
+          </svg>
+        </a>
         <button class="nav-auth-btn" onclick="doLogout()">Salir</button>
       </div>`
     if (usuario.rol === 'admin')
@@ -299,14 +348,18 @@
     const feed = document.getElementById('feed')
     const esAdmin = usuario?.rol === 'admin'
     if (!list.length) { feed.innerHTML = '<p style="color:var(--text2)">No hay noticias que coincidan.</p>'; return }
-    feed.innerHTML = list.map(n => `
+    feed.innerHTML = list.map(n => {
+      const guardado = favoritosSet.has(n.id)
+      return `
       <div class="tarjeta" data-id="${n.id}">
+        <button class="btn-favorito${guardado ? ' guardado' : ''}" data-id="${n.id}" title="${guardado ? 'Quitar de guardados' : 'Guardar noticia'}">
+          ${guardado ? SVG_GUARDADO : SVG_NO_GUARDADO}
+        </button>
         ${n.tema ? `<div class="tema">${n.tema}</div>` : ''}
         <h2>${n.titulo}</h2>
         <p>${n.resumen_es || ''}</p>
         <div class="meta">
           <span class="fuente">${n.fuente || ''}</span>
-          <span class="idioma">${n.idioma || ''}</span>
           ${n.fecha ? `<span class="fecha"> ${formatFecha(n.fecha)}</span>` : ''}
           <button class="btn-admin btn-leer" data-id="${n.id}" style="margin-left:auto">Leer más →</button>
         </div>
@@ -315,8 +368,12 @@
           <button class="btn-admin btn-editar" data-id="${n.id}">✏️ Editar</button>
           <button class="btn-admin danger btn-eliminar" data-id="${n.id}">🗑️ Eliminar</button>
         </div>` : ''}
-      </div>`).join('')
+      </div>`
+    }).join('')
 
+    feed.querySelectorAll('.btn-favorito').forEach(b =>
+      b.addEventListener('click', e => toggleFavorito(e, parseInt(b.dataset.id)))
+    )
     feed.querySelectorAll('.btn-leer').forEach(b =>
       b.addEventListener('click', e => { e.stopPropagation(); abrirDetalle(b.dataset.id) })
     )
@@ -403,8 +460,9 @@
     const temaVal = Array.isArray(n?.tema) ? (n.tema[0] || '') : (n?.tema || '')
     document.getElementById('n-tema').value = temaVal
     const term = n?.terminos
-    document.getElementById('n-terminos').value = Array.isArray(term) ? term.join(', ') : (term || '')
-    document.getElementById('n-fecha').value     = isoADatetimeLocal(n?.fecha)
+    document.getElementById('n-terminos').value  = Array.isArray(term) ? term.join(', ') : (term || '')
+    document.getElementById('n-fecha').value      = isoADatetimeLocal(n?.fecha)
+    document.getElementById('n-contenido').value  = n?.contenido || ''
     document.getElementById('modal').classList.add('open')
   }
 
@@ -429,6 +487,7 @@
       idioma:            document.getElementById('n-idioma').value,
       tema:              document.getElementById('n-tema').value,
       terminos:          document.getElementById('n-terminos').value,
+      contenido:         document.getElementById('n-contenido').value,
       fecha: fechaVal ? new Date(fechaVal).toISOString() : null,
     }
     try {
@@ -516,6 +575,7 @@
       console.error('Error abriendo detalle:', err)
     }
   }
+
 
   async function cargarRelacionadas(id) {
     try {
