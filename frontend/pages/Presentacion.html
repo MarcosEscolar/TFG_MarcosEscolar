@@ -6,6 +6,7 @@
     <title>GEOSFERA — Análisis geopolítico, leído entre líneas</title>
     <link rel="icon" type="image/png" href="/imagenes/MundoIcono.png">
     <link rel="stylesheet" href="/css/estilos.css">
+    <script>(function(){var t=localStorage.getItem('tema')||'dark';document.documentElement.setAttribute('data-theme',t);})()</script>
 </head>
 <body class="page-presentacion">
 
@@ -22,6 +23,7 @@
         <a href="#demo">Demo</a>
         <a href="#pipeline">Cómo funciona</a>
         <a href="/login" class="pres-nav-cta">Acceder →</a>
+        <button class="btn-tema" id="btn-tema" onclick="toggleTema()" title="Cambiar tema">☀</button>
     </div>
 </nav>
 
@@ -210,6 +212,16 @@
             }
         } catch {}
     })();
+
+    function toggleTema() {
+        const html = document.documentElement
+        const nuevo = html.getAttribute('data-theme') === 'light' ? 'dark' : 'light'
+        html.setAttribute('data-theme', nuevo)
+        localStorage.setItem('tema', nuevo)
+        document.getElementById('btn-tema').textContent = nuevo === 'light' ? '☾' : '☀'
+    }
+    document.getElementById('btn-tema').textContent =
+        document.documentElement.getAttribute('data-theme') === 'light' ? '☾' : '☀'
 </script>
 </body>
 </html>

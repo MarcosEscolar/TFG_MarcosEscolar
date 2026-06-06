@@ -40,20 +40,42 @@ def limpiar_texto(texto):
 
 
 def obtener_urls_existentes(db):
-    """Devuelve un set con todas las URLs ya guardadas en la tabla Noticias."""
+    """Devuelve un set con todas las URLs ya guardadas en la tabla Noticias.
+    Pagina de 1000 en 1000 para superar el límite por defecto de Supabase."""
     try:
-        result = db.table('Noticias').select('url').execute()
-        return {row['url'] for row in (result.data or [])}
+        urls = set()
+        batch = 1000
+        offset = 0
+        while True:
+            result = db.table('Noticias').select('url').range(offset, offset + batch - 1).execute()
+            if not result.data:
+                break
+            urls.update(row['url'] for row in result.data)
+            if len(result.data) < batch:
+                break
+            offset += batch
+        return urls
     except Exception as e:
         print(f'  [ERROR] No se pudieron cargar URLs existentes: {e}')
         return set()
 
 
 def obtener_nombres_glosario(db):
-    """Devuelve una lista con los nombres de todos los términos del glosario (en minúsculas)."""
+    """Devuelve una lista con los nombres de todos los términos del glosario (en minúsculas).
+    Pagina de 1000 en 1000 para superar el límite por defecto de Supabase."""
     try:
-        result = db.table('Glosario').select('nombre').execute()
-        return [row['nombre'].lower() for row in (result.data or [])]
+        nombres = []
+        batch = 1000
+        offset = 0
+        while True:
+            result = db.table('Glosario').select('nombre').range(offset, offset + batch - 1).execute()
+            if not result.data:
+                break
+            nombres.extend(row['nombre'].lower() for row in result.data)
+            if len(result.data) < batch:
+                break
+            offset += batch
+        return nombres
     except Exception as e:
         print(f'  [ERROR] No se pudieron cargar términos del glosario: {e}')
         return []

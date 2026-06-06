@@ -6,6 +6,7 @@
   <title>GEOSFERA</title>
   <link rel="icon" type="image/png" href="/imagenes/MundoIcono.png">
   <link rel="stylesheet" href="/css/estilos.css">
+  <script>(function(){var t=localStorage.getItem('tema')||'dark';document.documentElement.setAttribute('data-theme',t);})()</script>
 </head>
 <body>
 
@@ -17,6 +18,7 @@
     <a href="/fuentes">Fuentes</a>
     <a href="/scraper" class="nav-solo-admin">Scraper</a>
   </nav>
+  <button class="btn-tema" id="btn-tema" onclick="toggleTema()" title="Cambiar tema">☀</button>
   <div id="nav-auth"></div>
 </header>
 
@@ -92,13 +94,17 @@
             <option value="RU">Ruso</option><option value="ZH">Chino</option>
           </select>
         </div>
-        <div class="fg"><label>Tema</label>
+        <div class="fg"><label>Tema principal</label>
           <select id="n-tema">
             <option value="">Sin tema</option>
           </select>
         </div>
       </div>
-      <div class="fg"><label>Términos relacionados</label><input type="text" id="n-terminos" placeholder="Separados por coma"></div>
+      <div class="fg"><label>Segundo tema</label>
+        <select id="n-tema2">
+          <option value="">Sin segundo tema</option>
+        </select>
+      </div>
       <div class="fg"><label>Fecha de publicación</label><input type="datetime-local" id="n-fecha"></div>
       <div class="modal-footer">
         <button type="button" class="btn-m sec" onclick="cerrarModal('modal')">Cancelar</button>
@@ -284,8 +290,9 @@
       const temas = await res.json()
       const selFiltro = document.getElementById('filtro-tema')
       const selModal  = document.getElementById('n-tema')
+      const selModal2 = document.getElementById('n-tema2')
       temas.forEach(t => {
-        ;[selFiltro, selModal].forEach(sel => {
+        ;[selFiltro, selModal, selModal2].forEach(sel => {
           const opt = document.createElement('option')
           opt.value = t; opt.textContent = t
           sel.appendChild(opt)
@@ -363,7 +370,6 @@
           ${n.fecha ? `<span class="fecha"> ${formatFecha(n.fecha)}</span>` : ''}
           <button class="btn-admin btn-leer" data-id="${n.id}" style="margin-left:auto">Leer más →</button>
         </div>
-        ${n.terminos?.length ? `<div class="terminos">${Array.isArray(n.terminos) ? n.terminos.join(', ') : n.terminos}</div>` : ''}
         ${esAdmin ? `<div class="admin-acciones visible">
           <button class="btn-admin btn-editar" data-id="${n.id}">✏️ Editar</button>
           <button class="btn-admin danger btn-eliminar" data-id="${n.id}">🗑️ Eliminar</button>
@@ -456,11 +462,10 @@
     document.getElementById('n-url').value      = n?.url || ''
     document.getElementById('n-fuente').value   = n?.fuente || ''
     document.getElementById('n-idioma').value   = n?.idioma || 'ES'
-    // tema es un array en la BD; mostramos el primero en el select
-    const temaVal = Array.isArray(n?.tema) ? (n.tema[0] || '') : (n?.tema || '')
-    document.getElementById('n-tema').value = temaVal
-    const term = n?.terminos
-    document.getElementById('n-terminos').value  = Array.isArray(term) ? term.join(', ') : (term || '')
+    // tema es un array en la BD; mostramos el primero y el segundo
+    const temaArr = Array.isArray(n?.tema) ? n.tema : (n?.tema ? [n.tema] : [])
+    document.getElementById('n-tema').value  = temaArr[0] || ''
+    document.getElementById('n-tema2').value = temaArr[1] || ''
     document.getElementById('n-fecha').value      = isoADatetimeLocal(n?.fecha)
     document.getElementById('n-contenido').value  = n?.contenido || ''
     document.getElementById('modal').classList.add('open')
@@ -485,8 +490,8 @@
       url:               document.getElementById('n-url').value,
       fuente:            document.getElementById('n-fuente').value,
       idioma:            document.getElementById('n-idioma').value,
-      tema:              document.getElementById('n-tema').value,
-      terminos:          document.getElementById('n-terminos').value,
+      tema:              [document.getElementById('n-tema').value, document.getElementById('n-tema2').value].filter(Boolean),
+
       contenido:         document.getElementById('n-contenido').value,
       fecha: fechaVal ? new Date(fechaVal).toISOString() : null,
     }
@@ -619,16 +624,23 @@
   function enlazarTerminos(texto) {
     if (!terminosGlosario.length) return escapeHtml(texto)
 
-    // Ordenar de más largo a más corto para que en la alternancia el más específico gane
-    const terminos = [...terminosGlosario].sort((a, b) => b.nombre.length - a.nombre.length)
+    // Filtrar nombres vacíos y ordenar de más largo a más corto (el más específico gana)
+    const terminos = [...terminosGlosario]
+      .filter(t => t.nombre && t.nombre.trim())
+      .sort((a, b) => b.nombre.length - a.nombre.length)
+
+    if (!terminos.length) return escapeHtml(texto)
 
     // Mapa para lookup rápido por nombre en minúsculas
     const mapa = {}
     terminos.forEach(t => { mapa[t.nombre.toLowerCase()] = t })
 
-    // Regex combinado: un único pase sobre el texto escapado, sin re-procesar spans ya creados
+    // Regex combinado: un único pase sobre el texto escapado.
+    // Usamos solo \w en los límites (sin excluir " ni </>):
+    // escapeHtml ya convirtió < y > en &lt;/&gt;, y excluir "
+    // bloqueaba palabras tras comillas (p.ej. "OTAN") que sí deben enlazarse.
     const alternancia = terminos.map(t => escapeRegex(t.nombre)).join('|')
-    const patron = new RegExp(`(?<![\\w<"])(${alternancia})(?![\\w>"])`, 'gi')
+    const patron = new RegExp(`(?<!\\w)(${alternancia})(?!\\w)`, 'gi')
 
     return escapeHtml(texto).replace(patron, match => {
       const t = mapa[match.toLowerCase()]
@@ -678,6 +690,16 @@
   document.addEventListener('keydown', e => { if (e.key === 'Escape') cerrarDetalle() })
 
   iniciar()
+
+  function toggleTema() {
+    const html = document.documentElement
+    const nuevo = html.getAttribute('data-theme') === 'light' ? 'dark' : 'light'
+    html.setAttribute('data-theme', nuevo)
+    localStorage.setItem('tema', nuevo)
+    document.getElementById('btn-tema').textContent = nuevo === 'light' ? '☾' : '☀'
+  }
+  document.getElementById('btn-tema').textContent =
+    document.documentElement.getAttribute('data-theme') === 'light' ? '☾' : '☀'
 
 </script>
 </body>

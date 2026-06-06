@@ -6,6 +6,7 @@
     <title>GEOSFERA — Dashboard Scraper</title>
     <link rel="icon" type="image/png" href="/imagenes/MundoIcono.png">
     <link rel="stylesheet" href="/css/estilos.css">
+    <script>(function(){var t=localStorage.getItem('tema')||'dark';document.documentElement.setAttribute('data-theme',t);})()</script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 </head>
 <body>
@@ -18,6 +19,7 @@
     <a href="/fuentes">Fuentes</a>
     <a href="/scraper" class="activo">Scraper</a>
   </nav>
+  <button class="btn-tema" id="btn-tema" onclick="toggleTema()" title="Cambiar tema">☀</button>
   <div id="nav-auth"></div>
 </header>
 
@@ -30,9 +32,12 @@
             <h1>Dashboard del scraper</h1>
             <p id="dash-ultima-fecha">Cargando datos…</p>
         </div>
-        <div class="dash-estado" id="dash-estado">
-            <div class="dash-estado-dot"></div>
-            <span id="dash-estado-texto">Comprobando…</span>
+        <div style="display:flex;align-items:center;gap:16px;">
+            <button id="btn-ejecutar" class="btn-ejecutar" onclick="ejecutarScraper()">▶ Ejecutar ahora</button>
+            <div class="dash-estado" id="dash-estado">
+                <div class="dash-estado-dot"></div>
+                <span id="dash-estado-texto">Comprobando…</span>
+            </div>
         </div>
     </div>
 
@@ -490,8 +495,45 @@ async function doLogout() {
     window.location.href = '/';
 }
 
-// ── Arranque 
+async function ejecutarScraper() {
+    const btn = document.getElementById('btn-ejecutar');
+    btn.disabled = true;
+    btn.textContent = '⏳ Iniciando…';
+    try {
+        const res  = await fetch('/api/scraper/ejecutar', { method: 'POST', credentials: 'include' });
+        const data = await res.json();
+        if (!res.ok) {
+            alert(data.error || 'Error al lanzar el scraper.');
+            btn.disabled = false;
+            btn.textContent = '▶ Ejecutar ahora';
+            return;
+        }
+        // Actualizar indicador de estado y esperar un momento antes de refrescar
+        btn.textContent = '✔ Lanzado';
+        await actualizarEstado();
+        setTimeout(() => {
+            btn.disabled = false;
+            btn.textContent = '▶ Ejecutar ahora';
+        }, 5000);
+    } catch {
+        alert('No se pudo conectar con el servidor.');
+        btn.disabled = false;
+        btn.textContent = '▶ Ejecutar ahora';
+    }
+}
+
+// ── Arranque
 iniciar();
+
+function toggleTema() {
+  const html = document.documentElement
+  const nuevo = html.getAttribute('data-theme') === 'light' ? 'dark' : 'light'
+  html.setAttribute('data-theme', nuevo)
+  localStorage.setItem('tema', nuevo)
+  document.getElementById('btn-tema').textContent = nuevo === 'light' ? '☾' : '☀'
+}
+document.getElementById('btn-tema').textContent =
+  document.documentElement.getAttribute('data-theme') === 'light' ? '☾' : '☀'
 </script>
 </body>
 </html>

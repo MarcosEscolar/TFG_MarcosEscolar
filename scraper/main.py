@@ -43,7 +43,7 @@ def main():
 
     usar_ia = bool(os.getenv('GEMINI_API_KEY'))
     if not usar_ia:
-        print('[WARN] GEMINI_API_KEY no encontrada → se guardan noticias sin enriquecer')
+        print('[WARN] GEMINI_API_KEY no encontrada -> se guardan noticias sin enriquecer')
 
     # ── 1. Conexión a Supabase + inicio de log 
     db = get_db()
@@ -122,11 +122,11 @@ def main():
         finalizar_run(db, run_id, stats, fuentes_stats)
 
         print('=' * 55)
-        print(f'  ✓ Noticias guardadas:  {stats["noticias_guardadas"]}')
-        print(f'  ✓ Términos añadidos:   {stats["terminos_guardados"]}')
-        print(f'  ○ Duplicados omitidos: {stats["noticias_duplicadas"]}')
+        print(f'  [OK] Noticias guardadas:  {stats["noticias_guardadas"]}')
+        print(f'  [OK] Terminos anadidos:   {stats["terminos_guardados"]}')
+        print(f'  [--] Duplicados omitidos: {stats["noticias_duplicadas"]}')
         if stats['noticias_error']:
-            print(f'  ✗ Errores al guardar:  {stats["noticias_error"]}')
+            print(f'  [!!] Errores al guardar:  {stats["noticias_error"]}')
         print('=' * 55)
 
     except Exception as e:

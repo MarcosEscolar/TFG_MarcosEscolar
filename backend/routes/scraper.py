@@ -6,8 +6,12 @@ GET /api/scraper/runs          → lista de las últimas N ejecuciones
 GET /api/scraper/runs/<run_id> → detalle completo de una ejecución (con fuentes)
 GET /api/scraper/stats         → estadísticas globales para el dashboard
 """
+import os
+import subprocess
+import sys
 from flask import Blueprint, jsonify, request
 from database import get_db
+from auth import require_admin
 
 scraper_bp = Blueprint('scraper', __name__)
 
@@ -185,5 +189,44 @@ def get_stats():
             },
         })
 
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+# Ejecutar scraper manualmente
+
+@scraper_bp.route('/ejecutar', methods=['POST'])
+@require_admin
+def ejecutar_scraper():
+    """
+    Lanza el scraper en segundo plano si no hay una ejecución activa.
+    No espera a que termine — responde inmediatamente.
+    """
+    try:
+        db = get_db()
+        # Comprobar si ya hay un run en curso
+        activo = (
+            db.table('ScraperRuns')
+            .select('id')
+            .eq('estado', 'en_curso')
+            .limit(1)
+            .execute()
+        )
+        if activo.data:
+            return jsonify({'error': 'El scraper ya está en ejecución.'}), 409
+
+        # Ruta al script del scraper (relativa a este fichero)
+        scraper_path = os.path.abspath(
+            os.path.join(os.path.dirname(__file__), '..', '..', 'scraper', 'main.py')
+        )
+        if not os.path.exists(scraper_path):
+            return jsonify({'error': f'No se encontró el script en {scraper_path}'}), 500
+
+        subprocess.Popen(
+            [sys.executable, scraper_path],
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+        )
+        return jsonify({'mensaje': 'Scraper iniciado correctamente.'})
     except Exception as e:
         return jsonify({'error': str(e)}), 500
