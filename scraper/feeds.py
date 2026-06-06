@@ -157,7 +157,7 @@ def obtener_articulos(db, urls_existentes=None):
         articulos.extend(nuevos)
         fuentes_stats.append(stat)
         nuevos_count = sum(1 for a in nuevos if not a.get('_duplicado'))
-        print(f'         → {stat["articulos_recibidos"]} recibidos, {nuevos_count} nuevos a procesar')
+        print(f'         -> {stat["articulos_recibidos"]} recibidos, {nuevos_count} nuevos a procesar')
 
     nuevos_total = sum(1 for a in articulos if not a.get('_duplicado'))
     print(f'[feeds] Total: {len(articulos)} artículos ({nuevos_total} nuevos, {len(articulos)-nuevos_total} duplicados)')

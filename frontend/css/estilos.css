@@ -4,7 +4,7 @@
 
 @import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=Source+Serif+4:ital,wght@0,300;0,400;0,600;1,300&display=swap');
 
-/* ── Variables ── */
+/* ── Variables (modo oscuro, por defecto) ── */
 :root {
     --bg:          #0a0d12;
     --bg2:         #111520;
@@ -23,6 +23,61 @@
     --tag-bg:      rgba(59,130,246,0.12);
     --radius:      10px;
     --radius-sm:   6px;
+}
+
+/* ── Variables modo claro ── */
+[data-theme="light"] {
+    --bg:          #f8fafc;
+    --bg2:         #ffffff;
+    --bg3:         #f1f5f9;
+    --border:      #e2e8f0;
+    --border2:     #cbd5e1;
+    --accent:      #2563eb;
+    --accent2:     #1d4ed8;
+    --accent-glow: rgba(37,99,235,0.10);
+    --text:        #0f172a;
+    --text2:       #475569;
+    --text3:       #94a3b8;
+    --verde:       #059669;
+    --rojo:        #dc2626;
+    --naranja:     #b45309;
+    --tag-bg:      rgba(37,99,235,0.08);
+}
+
+/* ── Overrides modo claro: colores hardcodeados ── */
+[data-theme="light"] header {
+    background: rgba(248, 250, 252, 0.92);
+}
+[data-theme="light"] .pres-nav {
+    background: rgba(248, 250, 252, 0.92);
+}
+[data-theme="light"] body::before {
+    background-image: radial-gradient(ellipse 80% 50% at 50% -20%, rgba(37,99,235,0.06) 0%, transparent 60%);
+}
+[data-theme="light"] .alerta.error { background: rgba(220,38,38,.08); border-color: rgba(220,38,38,.3); color: #b91c1c; }
+[data-theme="light"] .alerta.ok    { background: rgba(5,150,105,.08);  border-color: rgba(5,150,105,.3);  color: #065f46; }
+[data-theme="light"] .prueba-rol.admin { background: rgba(37,99,235,.14); color: #1e40af; }
+[data-theme="light"] .prueba-rol.user  { background: rgba(71,85,105,.12);  color: var(--text2); }
+[data-theme="light"] .pres-contraste-lang { color: #fff; }
+
+/* ── Botón de cambio de tema ── */
+.btn-tema {
+    background: none;
+    border: 1px solid var(--border2);
+    border-radius: var(--radius-sm);
+    color: var(--text2);
+    cursor: pointer;
+    font-size: 1rem;
+    line-height: 1;
+    padding: .3rem .55rem;
+    display: flex;
+    align-items: center;
+    transition: color .2s, border-color .2s;
+    flex-shrink: 0;
+}
+.btn-tema:hover {
+    color: var(--text);
+    border-color: var(--accent2);
 }
 
 /* ── Reset ── */
@@ -535,6 +590,14 @@ main > p.subtitulo {
   align-items: center;
   justify-content: space-between;
   gap: 0.5rem;
+}
+
+.fuente-favicon {
+  width: 20px;
+  height: 20px;
+  border-radius: 3px;
+  flex-shrink: 0;
+  object-fit: contain;
 }
 
 .fuente-header h3 {
@@ -1653,6 +1716,24 @@ main.dash-wrap {
 }
 
 /* ── Indicador de estado del scraper ── */
+.btn-ejecutar {
+  padding: 8px 18px;
+  border-radius: 999px;
+  border: 1px solid var(--accent);
+  background: var(--accent);
+  color: #fff;
+  font-family: 'Syne', sans-serif;
+  font-size: 0.83rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.2s;
+}
+.btn-ejecutar:hover:not(:disabled) { opacity: 0.85; }
+.btn-ejecutar:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 .dash-estado {
   display: flex;
   align-items: center;

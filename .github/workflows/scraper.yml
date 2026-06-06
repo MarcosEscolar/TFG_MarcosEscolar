@@ -3,7 +3,7 @@ name: Scraper GEOSFERA
 on:
   schedule:
     # Se ejecuta una vez al día a las 06:00 UTC (08:00 hora peninsular)
-    - cron: "0 6 * * *"
+    #- cron: "0 6 * * *"
   workflow_dispatch:
     # Permite lanzarlo manualmente desde GitHub → Actions → Run workflow
 

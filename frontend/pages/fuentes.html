@@ -6,6 +6,7 @@
   <title>GEOSFERA — Fuentes</title>
   <link rel="icon" type="image/png" href="/imagenes/MundoIcono.png">
   <link rel="stylesheet" href="/css/estilos.css">
+  <script>(function(){var t=localStorage.getItem('tema')||'dark';document.documentElement.setAttribute('data-theme',t);})()</script>
 </head>
 <body>
 
@@ -17,6 +18,7 @@
     <a href="/fuentes" class="activo">Fuentes</a>
     <a href="/scraper" class="nav-solo-admin">Scraper</a>
   </nav>
+  <button class="btn-tema" id="btn-tema" onclick="toggleTema()" title="Cambiar tema">☀</button>
   <div id="nav-auth"></div>
 </header>
 
@@ -138,6 +140,18 @@
     usuario = null; location.reload()
   }
 
+  function faviconImg(url) {
+    try {
+      const parts = new URL(url).hostname.split('.')
+      // Si el penúltimo segmento tiene 2 letras es un TLD compuesto (co.uk, com.br…)
+      // → tomar los 3 últimos; si no, los 2 últimos
+      const dominio = parts[parts.length - 2].length === 2
+        ? parts.slice(-3).join('.')
+        : parts.slice(-2).join('.')
+      return `<img class="fuente-favicon" src="https://www.google.com/s2/favicons?domain=${dominio}&sz=32" alt="" onerror="this.style.display='none'">`
+    } catch { return '' }
+  }
+
   function renderFuentes(list) {
     const contenedor = document.getElementById('lista-fuentes')
     const esAdmin = usuario?.rol === 'admin'
@@ -145,6 +159,7 @@
     contenedor.innerHTML = list.map(f => `
       <div class="tarjeta-fuente">
         <div class="fuente-header">
+          ${faviconImg(f.url_rss)}
           <h3>${f.nombre}</h3>
           <span class="badge ${f.activa ? 'activa' : 'inactiva'}">${f.activa ? 'Activa' : 'Inactiva'}</span>
         </div>
@@ -251,6 +266,16 @@
   )
 
   iniciar()
+
+  function toggleTema() {
+    const html = document.documentElement
+    const nuevo = html.getAttribute('data-theme') === 'light' ? 'dark' : 'light'
+    html.setAttribute('data-theme', nuevo)
+    localStorage.setItem('tema', nuevo)
+    document.getElementById('btn-tema').textContent = nuevo === 'light' ? '☾' : '☀'
+  }
+  document.getElementById('btn-tema').textContent =
+    document.documentElement.getAttribute('data-theme') === 'light' ? '☾' : '☀'
 
 </script>
 </body>

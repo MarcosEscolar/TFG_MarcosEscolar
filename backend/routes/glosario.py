@@ -23,14 +23,14 @@ def get_terminos():
         limite    = min(int(request.args.get('limite', 0)), 500)
         offset    = int(request.args.get('offset', 0))
 
-        # Sin límite explícito devolver todo
+        # Sin límite explícito devolver todo (límite alto para evitar el cap de 1000 de PostgREST)
         if limite == 0:
             query = db.table('Glosario').select('*')
             if categoria: query = query.eq('categoria', categoria)
             if q:
                 q_safe = q.replace(',', ' ').replace('(', ' ').replace(')', ' ')
                 query = query.or_(f'nombre.ilike.%{q_safe}%,definicion.ilike.%{q_safe}%')
-            result = query.order('nombre').execute()
+            result = query.order('nombre').limit(5000).execute()
             return jsonify(result.data or [])
 
         # Con límite y paginación server-side

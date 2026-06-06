@@ -6,6 +6,7 @@
   <title>GEOSFERA — Glosario</title>
   <link rel="icon" type="image/png" href="/imagenes/MundoIcono.png">
   <link rel="stylesheet" href="/css/estilos.css">
+  <script>(function(){var t=localStorage.getItem('tema')||'dark';document.documentElement.setAttribute('data-theme',t);})()</script>
 </head>
 <body>
 
@@ -17,6 +18,7 @@
     <a href="/fuentes">Fuentes</a>
     <a href="/scraper" class="nav-solo-admin">Scraper</a>
   </nav>
+  <button class="btn-tema" id="btn-tema" onclick="toggleTema()" title="Cambiar tema">☀</button>
   <div id="nav-auth"></div>
 </header>
 
@@ -304,6 +306,16 @@
   )
 
   iniciar()
+
+  function toggleTema() {
+    const html = document.documentElement
+    const nuevo = html.getAttribute('data-theme') === 'light' ? 'dark' : 'light'
+    html.setAttribute('data-theme', nuevo)
+    localStorage.setItem('tema', nuevo)
+    document.getElementById('btn-tema').textContent = nuevo === 'light' ? '☾' : '☀'
+  }
+  document.getElementById('btn-tema').textContent =
+    document.documentElement.getAttribute('data-theme') === 'light' ? '☾' : '☀'
 
 </script>
 </body>
