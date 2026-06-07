@@ -4,3 +4,7 @@ python-dotenv==1.0.1
 supabase==2.9.0
 bcrypt==4.1.2
 gunicorn==22.0.0
+feedparser==6.0.11
+trafilatura==1.12.2
+requests==2.32.3
+google-generativeai==0.8.3
